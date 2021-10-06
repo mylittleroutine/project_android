@@ -7,8 +7,10 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.*
 import androidx.recyclerview.widget.RecyclerView
+import com.example.realtodoapp.R
 import com.example.realtodoapp.databinding.DialogDefaultBinding
 import com.example.realtodoapp.databinding.ItemTodoPackageBinding
+import com.example.realtodoapp.model.DateInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
 
 class AdapterToDoPackageList(val context: Context, var list: List<TodoPackageDto>, var dialogDefaultBinding: DialogDefaultBinding) : RecyclerView.Adapter<TodoPackageHolder>(){
@@ -26,21 +28,36 @@ class AdapterToDoPackageList(val context: Context, var list: List<TodoPackageDto
 
     override fun onBindViewHolder(holder: TodoPackageHolder, position: Int) {
         var item = items.get(position)
-        //
-        holder.setItem(item)
+//        holder.dialogDefaultBinding.certButton.setOnClickListener(){
+//            manualCertOnClickListener.onClick(it, position, item )
+//        }
+        holder.setItem(item, manualCertOnClickListener) // setItem에서 인증 버튼 인식해야지 제대로 된 item 인식
     }
 
     override fun getItemCount(): Int {
         return items.size
     }
+
+    interface ManualCertOnClickListener{
+        fun onClick(item: TodoPackageDto)
+    }
+
+    private lateinit var manualCertOnClickListener: ManualCertOnClickListener
+
+    fun setManualCertOnClickListener(manualCertOnClickListener: ManualCertOnClickListener){
+        this.manualCertOnClickListener = manualCertOnClickListener
+    }
 }
 
 class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, var dialogDefaultBinding: DialogDefaultBinding) : RecyclerView.ViewHolder(bind.root) {
-    fun setItem(item: TodoPackageDto){
+    fun setItem(item: TodoPackageDto, manualCertOnClickListener: AdapterToDoPackageList.ManualCertOnClickListener){
         bind.todoNameTextView.setText(item.name)
         bind.todoTimeTextView.setText(item.time)
         if(item.time == "TODAY"){
             bind.backgroundTodo.setBackgroundColor(Color.parseColor("#DDDDDD"))
+        }
+        if(item.success == true){
+            bind.sucessOrFailImageView.setImageResource(R.drawable.round_layout)
         }
 
         bind.todoNameTextView.setOnClickListener(){
@@ -66,6 +83,9 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
 
             dialogDefaultBinding.textName.setText(item.name)
 
+            dialogDefaultBinding.certButton.setOnClickListener(){
+                manualCertOnClickListener.onClick(item )
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ import java.util.*
 class MainFragment : Fragment(){
     lateinit var fragmentMainBinding: FragmentMainBinding
     lateinit var itemTodoPackageBinding: ItemTodoPackageBinding
-    lateinit var dialogDefaultBinding: DialogDefaultBinding
+    lateinit var  dialogDefaultBinding: DialogDefaultBinding
     lateinit var dialogAddTodoBinding: DialogAddTodoBinding
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
@@ -129,7 +129,6 @@ class MainFragment : Fragment(){
                 sharedPrefEditor.commit()
 
                 refreshTodoList()
-                dateInfoRecyclerViewAdapter = setDateInfoRecyclerView(dateInfoRecyclerView)
 
                 if(dialogAddTodoBinding.root.parent != null) {
                     dialog.dismiss()
@@ -153,7 +152,6 @@ class MainFragment : Fragment(){
             sharedPrefEditor.commit()
 
             refreshTodoList()
-            dateInfoRecyclerViewAdapter = setDateInfoRecyclerView(dateInfoRecyclerView)
         }
 
 
@@ -182,6 +180,12 @@ class MainFragment : Fragment(){
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
         recyclerView.setHasFixedSize(true)
+
+        adapter.setManualCertOnClickListener(object: AdapterToDoPackageList.ManualCertOnClickListener{
+            override fun onClick(item: TodoPackageDto) {
+                updateSuccessTodo(item)
+            }
+        })
 
         return adapter
     }
@@ -213,7 +217,50 @@ class MainFragment : Fragment(){
         recyclerView.layoutManager = linearLayoutManager
         recyclerView.setHasFixedSize(true)
 
+        adapter.setManualCertOnClickListener(object: AdapterToDoPackageList.ManualCertOnClickListener{
+            override fun onClick(item: TodoPackageDto) {
+                updateSuccessTodo(item)
+            }
+        })
+
         return adapter
+    }
+
+    fun updateSuccessTodo(item: TodoPackageDto){
+        var todoList = mutableListOf<TodoPackageDto>()
+        var emptyTodoListJson = gson.toJson(todoList)
+
+        var todoListJson = sharedPref.getString("myTodoList",emptyTodoListJson).toString()
+        todoList = gson.fromJson(todoListJson)
+
+        val yearComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.year - b.year } //  년도순 정렬
+
+        val monthComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.month - b.month } //  월순 정렬
+
+        val dayComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.day - b.day } //  날짜순 정렬
+
+        Collections.sort(todoList, dayComparator)
+        Collections.sort(todoList, monthComparator)
+        Collections.sort(todoList, yearComparator)
+
+        for(todo in todoList){
+            if(item.year == todo.year && item.month == todo.month && item.day == todo.day &&
+                item.hour == todo.hour && item.minute == todo.minute && item.name == todo.name){
+                todo.success = true
+
+                todoListJson = gson.toJson(todoList)
+
+                sharedPrefEditor.putString("myTodoList", todoListJson)
+                sharedPrefEditor.commit()
+
+                break
+            }
+        }
+
+        refreshTodoList()
     }
 
     fun setDateInfoRecyclerView(recyclerView: RecyclerView): AdapterDateInfoList{
@@ -234,22 +281,43 @@ class MainFragment : Fragment(){
         val dayComparator: Comparator<TodoPackageDto> =
             Comparator<TodoPackageDto> { a, b -> a.day - b.day } //  날짜순 정렬
 
-        Collections.sort(todoList, yearComparator)
-        Collections.sort(todoList, monthComparator)
         Collections.sort(todoList, dayComparator)
+        Collections.sort(todoList, monthComparator)
+        Collections.sort(todoList, yearComparator)
 
         var lastTodo = TodoPackageDto()
 
+        var todoCount = 0f
+        var successTodoCount = 0f // 날짜별 성공횟수를 체크하기 위함
         for(todo in todoList){
             if(!(todo.year == lastTodo.year && todo.month == lastTodo.month && todo.day == lastTodo.day)){ // 날짜가 바뀔 경우
-                var newDateInfo = DateInfoDto()
-                newDateInfo.year = todo.year
-                newDateInfo.month = todo.month
-                newDateInfo.day = todo.day
+                if(lastTodo.year != 0) // 초기 상태가 아닐 시 날짜 dto 추가
+                {
+                    var lastDateInfo = DateInfoDto()
+                    lastDateInfo.year = lastTodo.year
+                    lastDateInfo.month = lastTodo.month
+                    lastDateInfo.day = lastTodo.day
+                    lastDateInfo.successProgress = successTodoCount / todoCount
 
-                dateInfoList.add(newDateInfo)
-                lastTodo = todo
+                    dateInfoList.add(lastDateInfo)
+                    successTodoCount = 0f
+                    todoCount = 0f
+                }
             }
+            todoCount +=1
+            if(todo.success == true) successTodoCount +=1
+            lastTodo = todo
+        }
+        // 마지막 날짜 dto 추가
+        if(lastTodo.year != 0) // 초기 상태가 아닐 시 날짜 dto 추가
+        {
+            var lastDateInfo = DateInfoDto()
+            lastDateInfo.year = lastTodo.year
+            lastDateInfo.month = lastTodo.month
+            lastDateInfo.day = lastTodo.day
+            lastDateInfo.successProgress = successTodoCount / todoCount
+
+            dateInfoList.add(lastDateInfo)
         }
 
         recyclerView.adapter = AdapterDateInfoList(requireContext(),dateInfoList)
@@ -257,6 +325,11 @@ class MainFragment : Fragment(){
         val linearLayoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         recyclerView.layoutManager = linearLayoutManager
         recyclerView.setHasFixedSize(true)
+
+        adapter.pickedYear = curYear
+        adapter.pickedMonth = curMonth
+        adapter.pickedDay = curDay
+        adapter.notifyDataSetChanged() // 아이템 업데이트 - setItem을 다시 수행하여 pick된 날짜가 초록색으로 보이게 함
 
         adapter.setDateInfoOnClickListener(object:AdapterDateInfoList.DateInfoOnClickListener{
             @SuppressLint("NotifyDataSetChanged")
@@ -280,5 +353,6 @@ class MainFragment : Fragment(){
     fun refreshTodoList(){
         setTodoByDayRecyclerView(fragmentMainBinding.fragmentMainRecyclerView)
         setTodoByTimeRecyclerView(fragmentMainBinding.todoByTimeRecyclerView)
+        setDateInfoRecyclerView(fragmentMainBinding.dateInfoRecyclerview)
     }
 }

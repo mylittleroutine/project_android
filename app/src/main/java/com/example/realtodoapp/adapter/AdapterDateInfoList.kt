@@ -64,5 +64,7 @@ class DateInfoHolder(val context: Context, var bind: ItemDateInfoBinding):Recycl
         else{
             bind.backgroundConstraintLayout.setBackgroundResource(R.drawable.round_layout)
         }
+
+        bind.successProgressView.progress = item.successProgress * 100
     }
 }
