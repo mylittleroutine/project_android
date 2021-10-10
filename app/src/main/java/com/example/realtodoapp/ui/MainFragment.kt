@@ -14,10 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.R
 import com.example.realtodoapp.adapter.AdapterDateInfoList
 import com.example.realtodoapp.adapter.AdapterToDoPackageList
-import com.example.realtodoapp.databinding.DialogAddTodoBinding
-import com.example.realtodoapp.databinding.DialogDefaultBinding
-import com.example.realtodoapp.databinding.FragmentMainBinding
-import com.example.realtodoapp.databinding.ItemTodoPackageBinding
+import com.example.realtodoapp.databinding.*
 import com.example.realtodoapp.model.DateInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
@@ -30,6 +27,7 @@ class MainFragment : Fragment(){
     lateinit var itemTodoPackageBinding: ItemTodoPackageBinding
     lateinit var  dialogDefaultBinding: DialogDefaultBinding
     lateinit var dialogAddTodoBinding: DialogAddTodoBinding
+    lateinit var dialogGraphBinding: DialogGraphBinding
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -60,6 +58,7 @@ class MainFragment : Fragment(){
         itemTodoPackageBinding = ItemTodoPackageBinding.inflate(layoutInflater)
         dialogDefaultBinding = DialogDefaultBinding.inflate(layoutInflater)
         dialogAddTodoBinding = DialogAddTodoBinding.inflate(layoutInflater)
+        dialogGraphBinding = DialogGraphBinding.inflate(layoutInflater)
 
         var todoByDayRecyclerView = fragmentMainBinding.fragmentMainRecyclerView
         var todoByDayRecyclerViewAdapter = setTodoByDayRecyclerView(todoByDayRecyclerView)
@@ -110,7 +109,11 @@ class MainFragment : Fragment(){
                 newTodo.month = Integer.parseInt(month)
                 newTodo.day = Integer.parseInt(day)
 
-                if(dialogAddTodoBinding.diableTimeCheckBox.isChecked){
+                if(dialogAddTodoBinding.autoCheckBox.isChecked){
+                    newTodo.certType = "auto"
+                }
+
+                if(dialogAddTodoBinding.disableTimeCheckBox.isChecked){
                     newTodo.name = dialogAddTodoBinding.todoNameEditText.getText().toString()
                     newTodo.time = "TODAY"
                     todoList.add(newTodo)
@@ -175,7 +178,7 @@ class MainFragment : Fragment(){
             }
         }
 
-        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
@@ -211,7 +214,7 @@ class MainFragment : Fragment(){
 
         Collections.sort(filteredTodoList, comparator)
 
-        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager

@@ -9,4 +9,5 @@ class TodoPackageDto{
     var hour = 0
     var minute = 0
     var success = false
+    var certType = ""
 }
