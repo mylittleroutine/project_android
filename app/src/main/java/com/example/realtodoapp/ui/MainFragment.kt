@@ -105,6 +105,10 @@ class MainFragment : Fragment(){
                 var hour = dialogAddTodoBinding.todoHourEditText.getText().toString()
                 var minute = dialogAddTodoBinding.todoMinuteEditText.getText().toString()
 
+                // 종료 시간 있을 때 설정
+                var endHour = dialogAddTodoBinding.todoEndHourEditText.getText().toString()
+                var endMinute = dialogAddTodoBinding.todoEndMinuteEditText.getText().toString()
+
                 newTodo.year = Integer.parseInt(year)
                 newTodo.month = Integer.parseInt(month)
                 newTodo.day = Integer.parseInt(day)
@@ -120,9 +124,12 @@ class MainFragment : Fragment(){
                 }
                 else{
                     newTodo.name = dialogAddTodoBinding.todoNameEditText.getText().toString()
-                    newTodo.hour = Integer.parseInt(hour)
-                    newTodo.minute = Integer.parseInt(minute)
-                    newTodo.time = hour +":" + minute
+                    if(hour != "") newTodo.hour = Integer.parseInt(hour)
+                    if(minute != "") newTodo.minute = Integer.parseInt(minute)
+                    if(endHour != "") newTodo.endHour = Integer.parseInt(endHour)
+                    if(endMinute != "") newTodo.endMinute = Integer.parseInt(endMinute)
+
+                    newTodo.time = String.format("%02d",newTodo.hour) +":" + String.format("%02d",newTodo.minute)
                     todoList.add(newTodo)
                 } // 시간 설정 여부에 따라 다른 방식으로 dto 추가
 

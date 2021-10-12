@@ -70,7 +70,7 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
             bind.backgroundTodo.setBackgroundColor(Color.parseColor("#DDDDDD"))
         }
         if(item.success == true){
-            bind.sucessOrFailImageView.setImageResource(R.drawable.round_layout)
+            bind.sucessOrFailImageView.setImageResource(R.drawable.success_check)
         }
 
         bind.todoNameTextView.setOnClickListener(){
@@ -103,7 +103,7 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
                 }
             }
 
-            // 자동 인식 테스트
+            // 자동 인식 테스트 현황 출력
             if(item.certType == "auto"){
 
                 sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
@@ -115,12 +115,6 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
                 var interActiveScreenRecordJson = sharedPref.getString("interActiveScreenRecord"+
                     item.year.toString()+item.month.toString()+item.day.toString()+item.hour.toString()+item.minute.toString(),emptyInterActiveScreenRecordJson).toString()
                 interActiveScreenRecord = gson.fromJson(interActiveScreenRecordJson)
-
-                var testRecord = ""
-
-                for(record in interActiveScreenRecord){
-                    testRecord = testRecord.plus(record.toString())
-                }
 
                 // dialog로 상태 출력
                 val dialog = Dialog(context)
@@ -143,20 +137,22 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
                 dialog.setCancelable(true)
                 dialog.show()
 
-                // chart 데이터 설정하여 출력력
                 setChartData(interActiveScreenRecord)
             }
        }
     }
 
+    @SuppressLint("SetTextI18n")
     fun setChartData(records: MutableList<Boolean>){
         var chartData = LineData()
         var entry = ArrayList<Entry>()
         var count = 0
+        var offCount = 0
 
         for(record in records){
             if(record == false){
                 entry.add(Entry(count.toFloat(), 0f))
+                offCount +=1
             }
             if(record == true){
                 entry.add(Entry(count.toFloat(), 1f))
@@ -168,5 +164,9 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
         chartData.addDataSet(lineDataSet)
         dialogGraphBinding.linechart.setData(chartData)
         dialogGraphBinding.linechart.invalidate()
+
+        var offRatio = ((offCount.toFloat() / count.toFloat()) *100).toInt()
+        dialogGraphBinding.graphResultTextView.setText("화면 꺼짐 비율: "+ offRatio +"%")
+
     }
 }

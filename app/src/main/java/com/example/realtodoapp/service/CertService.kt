@@ -19,17 +19,21 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.example.realtodoapp.R
 import com.example.realtodoapp.model.TodoPackageDto
+import com.example.realtodoapp.ui.MainFragment
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class CertService: Service(), SensorEventListener {
     lateinit var sensorManager:SensorManager
     lateinit var gravitySensor: Sensor
+    var isAlreadyRunning = false
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -81,71 +85,92 @@ class CertService: Service(), SensorEventListener {
         return null
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("SimpleDateFormat")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {  // service 시작 시 수행됨
 
-        val scope = GlobalScope // 비동기 함수 진행
-        scope.launch{
+        if(isAlreadyRunning == false) { // 서비스 실행 중 한 번만 globalscope 생성
+            isAlreadyRunning = true
+            val scope = GlobalScope // 비동기 함수 진행
+            scope.launch {
+                while (true) {
+                    delay(1000)
 
-            var time = 0
+                    // 현재 시간 불러옴
+                    var now = System.currentTimeMillis()
+                    var date = Date(now)
+                    val simpleDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                    val simpleYear = SimpleDateFormat("yyyy")
+                    val simpleMonth = SimpleDateFormat("MM")
+                    val simpleDay = SimpleDateFormat("dd")
+                    val simpleHour = SimpleDateFormat("HH") //24시간제 표시
+                    val simpleMinute = SimpleDateFormat("mm")
+                    val getYear: String = simpleYear.format(date)
+                    val getMonth: String = simpleMonth.format(date)
+                    val getDay: String = simpleDay.format(date)
+                    val getHour: String = simpleHour.format(date)
+                    val getMinute: String = simpleMinute.format(date)
 
-            while(true){
-                delay(1000)
+                    //setForeGround("날짜", getTime  + "\n" + getYear + getMonth + getDay)
 
-                // 현재 시간 불러옴
-                var now = System.currentTimeMillis()
-                var date = Date(now)
-                val simpleDate = SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
-                val simpleYear = SimpleDateFormat("yyyy")
-                val simpleMonth = SimpleDateFormat("MM")
-                val simpleDay = SimpleDateFormat("dd")
-                val getTime: String = simpleDate.format(date)
-                val getYear: String = simpleYear.format(date)
-                val getMonth: String = simpleMonth.format(date)
-                val getDay: String = simpleDay.format(date)
+                    // todo목록 불러옴
+                    var todoList = mutableListOf<TodoPackageDto>()
+                    var emptyTodoListJson = gson.toJson(todoList)
 
-                //setForeGround("날짜", getTime  + "\n" + getYear + getMonth + getDay)
+                    var todoListJson =
+                        sharedPref.getString("myTodoList", emptyTodoListJson).toString()
+                    todoList = gson.fromJson(todoListJson)
 
-                // todo목록 불러옴
-                var todoList = mutableListOf<TodoPackageDto>()
-                var emptyTodoListJson = gson.toJson(todoList)
+                    var filteredTodoList = mutableListOf<TodoPackageDto>()
 
-                var todoListJson = sharedPref.getString("myTodoList",emptyTodoListJson).toString()
-                todoList = gson.fromJson(todoListJson)
-
-                var filteredTodoList = mutableListOf<TodoPackageDto>()
-
-                for(todo in todoList){
-                    if(todo.year == Integer.parseInt(getYear) && todo.month == Integer.parseInt(getMonth) && todo.day == Integer.parseInt(getDay))
-                    {
-                        filteredTodoList.add(todo)
+                    for (todo in todoList) {
+                        if (todo.year == Integer.parseInt(getYear) && todo.month == Integer.parseInt(
+                                getMonth
+                            ) && todo.day == Integer.parseInt(getDay)
+                        ) {
+                            filteredTodoList.add(todo)
+                        }
                     }
-                }
 
-                val comparator: Comparator<TodoPackageDto> =
-                    Comparator<TodoPackageDto> { a, b -> a.hour * 60 + a.minute - b.hour * 60 - b.minute } // 시간순 정렬
-                Collections.sort(filteredTodoList, comparator)
+                    val comparator: Comparator<TodoPackageDto> =
+                        Comparator<TodoPackageDto> { a, b -> a.hour * 60 + a.minute - b.hour * 60 - b.minute } // 시간순 정렬
+                    Collections.sort(filteredTodoList, comparator)
 
 
-                // 다음 todo를 알려줌
-                for (todo in filteredTodoList){  // 오늘 날짜의 todo에 한해서 체크
-                    if(todo.certType == "auto") // 화면 인식 방식
-                    {
-                        var startHour = todo.hour
-                        var startMinute = todo.minute
-                        var endHour = todo.hour
-                        var endMinute = todo.minute + 2 // 2분 테스트
-                        recordActionScreen(startHour, startMinute, endHour, endMinute)
+                    // 다음 todo를 알려줌
+                    for (todo in filteredTodoList) {  // 오늘 날짜의 todo에 한해서 체크
+                        if (todo.certType == "auto") // 화면 인식 방식
+                        {
+                            var startHour = todo.hour
+                            var startMinute = todo.minute
+                            var endHour = todo.endHour
+                            var endMinute = todo.endMinute
+
+                            var offRatio = recordActionScreen(startHour, startMinute, endHour, endMinute)
+
+                            if(offRatio != -1){ // -1은 인증 체크 시간이 아님을 의미
+                                if(offRatio > 70) { // 화면 꺼짐 비율 70% 이상이면 성공
+                                    // 성공했으면 todo에 업데이트
+                                    updateCertSuccessTodo(todo)
+
+                                    setForeGround("todo 인증 알림" , todo.name + " 성공")
+                                }
+                                else{
+                                    setForeGround("todo 인증 알림" , todo.name + " 실패")
+                                }
+                            }
+
+                        }
                     }
-                }
 
+                }
             }
         }
 
         return super.onStartCommand(intent, flags, startId)
     }
 
-    fun setForeGround(title:String, text: String){
+    fun setForeGround(title:String, text: String){ // 알림 표시 기능
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
@@ -184,15 +209,16 @@ class CertService: Service(), SensorEventListener {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("SimpleDateFormat")
-    fun recordActionScreen(startHour:Int, startMinute:Int, endHour:Int, endMinute:Int){ // 기기에 화면 켜짐/꺼짐 기록 저장
+    fun recordActionScreen(startHour:Int, startMinute:Int, endHour:Int, endMinute:Int): Int{ // 기기에 화면 켜짐/꺼짐 기록 저장, 인증 현황 return
         // 현재 시간 불러옴
         var now = System.currentTimeMillis()
         var date = Date(now)
         val simpleYear = SimpleDateFormat("yyyy")
         val simpleMonth = SimpleDateFormat("MM")
         val simpleDay = SimpleDateFormat("dd")
-        val simpleHour = SimpleDateFormat("hh")
+        val simpleHour = SimpleDateFormat("HH") //24시간제 표시
         val simpleMinute = SimpleDateFormat("mm")
         val getYear: String = simpleYear.format(date)
         val getMonth: String = simpleMonth.format(date)
@@ -200,7 +226,6 @@ class CertService: Service(), SensorEventListener {
         val getHour: String = simpleHour.format(date)
         val getMinute: String = simpleMinute.format(date)
 
-        setForeGround("시간", date.toString())
 
         var sharedPrefKey = "interActiveScreenRecord"+
                             getYear+getMonth+getDay+startHour.toString()+startMinute.toString()
@@ -212,9 +237,18 @@ class CertService: Service(), SensorEventListener {
         var interActiveScreenRecordJson = sharedPref.getString(sharedPrefKey,emptyInterActiveScreenRecord).toString()
         interActiveScreenRecord = gson.fromJson(interActiveScreenRecordJson)
 
-        // 인증 조건부 시작
-        if(Integer.parseInt(getHour) >= startHour && Integer.parseInt(getHour) <= endHour &&
-            Integer.parseInt(getMinute) >= startMinute && Integer.parseInt(getMinute) < endMinute){ // 인증 시간에만 수행
+        var startTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
+        var endTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",endHour)+"-"+String.format("%02d",endMinute) // 두자리수로 맞춰줌
+        var currentTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+getHour+"-"+getMinute
+
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+
+        val startTime: LocalDateTime = LocalDateTime.parse(startTimeString, formatter)
+        val endTime: LocalDateTime = LocalDateTime.parse(endTimeString, formatter)
+        val currentTime:LocalDateTime = LocalDateTime.parse(currentTimeString, formatter) // 시간 비교 위해 변환
+
+
+        if(currentTime.isEqual(startTime)|| (currentTime.isAfter(startTime) && currentTime.isBefore(endTime))){ // 인증 시간에만 화면 꺼짐/켜짐 측정 수행
 
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (pm.isInteractive) {
@@ -227,6 +261,58 @@ class CertService: Service(), SensorEventListener {
 
             sharedPrefEditor.putString(sharedPrefKey, interActiveScreenRecordJson) // 시간별로 따로 저장
             sharedPrefEditor.commit()
+        }
+        else if(currentTime.isEqual(endTime)){ // 인증 시간 지나면 성공 여부 체크
+            var count = 0
+            var offCount = 0
+
+            for (record in interActiveScreenRecord){
+                if(record == false){
+                    offCount +=1
+                }
+                count +=1
+            }
+
+            var offRatio = ((offCount.toFloat() / count.toFloat()) *100).toInt()
+
+            return offRatio
+        }
+
+        return -1 // 인증 완료 전에는 -1 return
+    }
+
+    fun updateCertSuccessTodo(item: TodoPackageDto){ // 인증 성공 업데이트
+        var todoList = mutableListOf<TodoPackageDto>()
+        var emptyTodoListJson = gson.toJson(todoList)
+
+        var todoListJson = sharedPref.getString("myTodoList",emptyTodoListJson).toString()
+        todoList = gson.fromJson(todoListJson)
+
+        val yearComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.year - b.year } //  년도순 정렬
+
+        val monthComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.month - b.month } //  월순 정렬
+
+        val dayComparator: Comparator<TodoPackageDto> =
+            Comparator<TodoPackageDto> { a, b -> a.day - b.day } //  날짜순 정렬
+
+        Collections.sort(todoList, dayComparator)
+        Collections.sort(todoList, monthComparator)
+        Collections.sort(todoList, yearComparator)
+
+        for(todo in todoList){
+            if(item.year == todo.year && item.month == todo.month && item.day == todo.day &&
+                item.hour == todo.hour && item.minute == todo.minute && item.name == todo.name){
+                todo.success = true
+
+                todoListJson = gson.toJson(todoList)
+
+                sharedPrefEditor.putString("myTodoList", todoListJson)
+                sharedPrefEditor.commit()
+
+                break
+            }
         }
     }
 
