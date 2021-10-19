@@ -1,25 +1,33 @@
 package com.example.realtodoapp.service
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.*
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.Build
-import android.os.IBinder
-import android.os.PowerManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.*
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.realtodoapp.R
 import com.example.realtodoapp.model.TodoPackageDto
+import com.example.realtodoapp.ui.MainActivity
 import com.example.realtodoapp.ui.MainFragment
+import com.google.android.gms.location.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
@@ -29,6 +37,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.math.abs
 
 class CertService: Service(), SensorEventListener {
     lateinit var sensorManager:SensorManager
@@ -39,6 +48,9 @@ class CertService: Service(), SensorEventListener {
     var gson: Gson = Gson()
     lateinit var sharedPref: SharedPreferences
     lateinit var sharedPrefEditor : SharedPreferences.Editor
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
 
     companion object {
         const val NOTIFICATION_ID = 1
@@ -60,6 +72,8 @@ class CertService: Service(), SensorEventListener {
             sensorManager.registerListener(this, gravitySensor, SensorManager.SENSOR_DELAY_NORMAL)
 
             setForeGround("", "")
+
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         }
     }
 
@@ -137,9 +151,9 @@ class CertService: Service(), SensorEventListener {
                     Collections.sort(filteredTodoList, comparator)
 
 
-                    // 다음 todo를 알려줌
+                    // 현재 인증되어야 하는 todo에 따라 인증 실행
                     for (todo in filteredTodoList) {  // 오늘 날짜의 todo에 한해서 체크
-                        if (todo.certType == "auto") // 화면 인식 방식
+                        if (todo.certType == "auto" && todo.success == false) // 화면 인식 방식
                         {
                             var startHour = todo.hour
                             var startMinute = todo.minute
@@ -153,13 +167,24 @@ class CertService: Service(), SensorEventListener {
                                     // 성공했으면 todo에 업데이트
                                     updateCertSuccessTodo(todo)
 
-                                    setForeGround("todo 인증 알림" , todo.name + " 성공")
+                                    setAlarm("todo 인증 알림" , todo.name + " 성공")
                                 }
                                 else{
-                                    setForeGround("todo 인증 알림" , todo.name + " 실패")
+                                    setAlarm("todo 인증 알림" , todo.name + " 실패")
                                 }
                             }
 
+                        }
+                        else if(todo.certType == "LOCATE_AUTO" && todo.success == false){
+                            var startHour = todo.hour
+                            var startMinute = todo.minute
+
+                            var successOrFail = recordCurrentLocation(startHour, startMinute)
+                            if(successOrFail == true){
+                                // 성공했으면 todo에 업데이트
+                                updateCertSuccessTodo(todo)
+                                setAlarm("todo 인증 알림" , todo.name + " 성공")
+                            }
                         }
                     }
 
@@ -170,7 +195,7 @@ class CertService: Service(), SensorEventListener {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    fun setForeGround(title:String, text: String){ // 알림 표시 기능
+    fun setForeGround(title:String, text: String){ // foreground 알림 표시 기능 (항상 켜져있어야 작동)
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
@@ -178,6 +203,17 @@ class CertService: Service(), SensorEventListener {
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
+    }
+
+    fun setAlarm(title:String, text: String){ // 일반 알림 표시 기능
+        val notificationManager = applicationContext.getSystemService(
+            Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(R.drawable.meat)
+            .build()
+        notificationManager.notify(2,notification)
     }
 
     // 센서 부분
@@ -279,6 +315,117 @@ class CertService: Service(), SensorEventListener {
         }
 
         return -1 // 인증 완료 전에는 -1 return
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun recordCurrentLocation(startHour:Int, startMinute:Int): Boolean{
+        // 현재 시간 불러옴
+        var now = System.currentTimeMillis()
+        var date = Date(now)
+        val simpleYear = SimpleDateFormat("yyyy")
+        val simpleMonth = SimpleDateFormat("MM")
+        val simpleDay = SimpleDateFormat("dd")
+        val simpleHour = SimpleDateFormat("HH") //24시간제 표시
+        val simpleMinute = SimpleDateFormat("mm")
+        val getYear: String = simpleYear.format(date)
+        val getMonth: String = simpleMonth.format(date)
+        val getDay: String = simpleDay.format(date)
+        val getHour: String = simpleHour.format(date)
+        val getMinute: String = simpleMinute.format(date)
+
+        var startTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
+        var currentTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+getHour+"-"+getMinute
+
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
+
+        val startTime: LocalDateTime = LocalDateTime.parse(startTimeString, formatter)
+        val currentTime:LocalDateTime = LocalDateTime.parse(currentTimeString, formatter) // 시간 비교 위해 변환
+
+        if(currentTime.isEqual(startTime) || currentTime.isAfter(startTime)){ // 인증 시작 시간부터 발동
+            // 현재 위치값을 알아내어 기기에 저장
+            var locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val locationGPSProvider = LocationManager.GPS_PROVIDER
+            val locationNetworkProvider = LocationManager.NETWORK_PROVIDER
+            var userLocation = Location(locationGPSProvider)
+
+            var hasFineLocationPermission = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+            var hasCoarseLocationPermission = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION)
+
+            // 위치 권한 허용된 경우에만 실행
+            if(hasFineLocationPermission == PackageManager.PERMISSION_GRANTED &&
+                hasCoarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
+
+                var mLocationListener = object : LocationListener {
+                    override fun onLocationChanged(location: Location) {
+                    }
+                    override fun onProviderDisabled(provider: String) {
+                    }
+
+                    override fun onProviderEnabled(provider: String) {
+                    }
+
+                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+                    }
+                }
+
+                locationManager.removeUpdates(mLocationListener) // 중복 방지 위해 끊고 시작
+
+                var handler = Handler(Looper.getMainLooper())
+                handler.postDelayed(Runnable {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0f, mLocationListener)
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0f, mLocationListener)
+                }, 0)
+
+
+                if(locationManager.getLastKnownLocation(locationGPSProvider) != null){
+                    userLocation = locationManager.getLastKnownLocation(locationGPSProvider)!!
+                }
+                else if(locationManager.getLastKnownLocation(locationNetworkProvider) != null){
+                    userLocation = locationManager.getLastKnownLocation(locationNetworkProvider)!!
+                }
+                else{
+                    setAlarm("위치", "측정불가")
+                    return false
+                }
+
+                var latitude = userLocation.latitude
+                var longitude = userLocation.longitude
+
+                // 현재 위치값 저장 (todo마다 따로 저장)
+                var sharedPrefKey = "currentLocateRecord"+
+                        getYear+getMonth+getDay+startHour.toString()+startMinute.toString()
+
+                var currentLocateRecord = mutableListOf<Double>()
+                currentLocateRecord.add(latitude)
+                currentLocateRecord.add(longitude)
+
+                var currentLocateRecordJson = gson.toJson(currentLocateRecord)
+
+                sharedPrefEditor.putString(sharedPrefKey, currentLocateRecordJson) // 시간별로 따로 저장
+                sharedPrefEditor.commit()
+
+                setAlarm("위치", latitude.toString() + " " + longitude.toString())
+
+                // 목표 위치에 도달했는지 확인
+                var sharedPrefKeyGoal = "goalLocateRecord"+
+                        getYear+getMonth+getDay+startHour.toString()+startMinute.toString()
+                var goalLocateRecord = mutableListOf<Double>()
+                var emptyGoalLocateRecord = gson.toJson(goalLocateRecord)
+
+                var goalLocateRecordJson = sharedPref.getString(sharedPrefKeyGoal,emptyGoalLocateRecord).toString()
+                goalLocateRecord = gson.fromJson(goalLocateRecordJson)
+
+                if(abs(latitude - goalLocateRecord[0]) < 0.001 && abs(longitude - goalLocateRecord[1]) < 0.001){
+                    setAlarm("가까움", abs(latitude - goalLocateRecord[0]).toString() + " " + abs(longitude - goalLocateRecord[1]).toString())
+                    return false
+                }
+            }
+
+        }
+
+        return false
     }
 
     fun updateCertSuccessTodo(item: TodoPackageDto){ // 인증 성공 업데이트

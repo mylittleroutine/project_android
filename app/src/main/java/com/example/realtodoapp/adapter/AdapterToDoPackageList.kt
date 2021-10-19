@@ -1,27 +1,37 @@
 package com.example.realtodoapp.adapter
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.*
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.R
 import com.example.realtodoapp.databinding.DialogDefaultBinding
 import com.example.realtodoapp.databinding.DialogGraphBinding
+import com.example.realtodoapp.databinding.DialogMapBinding
 import com.example.realtodoapp.databinding.ItemTodoPackageBinding
 import com.example.realtodoapp.model.DateInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.google.android.gms.maps.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.ArrayList
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 
-class AdapterToDoPackageList(val context: Context, var list: List<TodoPackageDto>, var dialogDefaultBinding: DialogDefaultBinding, var dialogGraphBinding: DialogGraphBinding) : RecyclerView.Adapter<TodoPackageHolder>(){
+
+class AdapterToDoPackageList(val activity: FragmentActivity, val context: Context, var list: List<TodoPackageDto>, var dialogDefaultBinding: DialogDefaultBinding,
+                             var dialogGraphBinding: DialogGraphBinding, var dialogMapBinding: DialogMapBinding) : RecyclerView.Adapter<TodoPackageHolder>(){
     var items = list
         @SuppressLint("NotifyDataSetChanged")
         set(value){
@@ -31,7 +41,7 @@ class AdapterToDoPackageList(val context: Context, var list: List<TodoPackageDto
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TodoPackageHolder {
         var bind = ItemTodoPackageBinding.inflate(LayoutInflater.from(context), parent, false)
-        return TodoPackageHolder(context, bind, dialogDefaultBinding, dialogGraphBinding)
+        return TodoPackageHolder(activity, context, bind, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
     }
 
     override fun onBindViewHolder(holder: TodoPackageHolder, position: Int) {
@@ -57,11 +67,13 @@ class AdapterToDoPackageList(val context: Context, var list: List<TodoPackageDto
     }
 }
 
-class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, var dialogDefaultBinding: DialogDefaultBinding, var dialogGraphBinding: DialogGraphBinding) : RecyclerView.ViewHolder(bind.root) {
+class TodoPackageHolder(val activity: FragmentActivity, val context: Context, var bind: ItemTodoPackageBinding, var dialogDefaultBinding: DialogDefaultBinding,
+                        var dialogGraphBinding: DialogGraphBinding, var dialogMapBinding: DialogMapBinding) : RecyclerView.ViewHolder(bind.root){
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
     lateinit var sharedPref: SharedPreferences
     lateinit var sharedPrefEditor : SharedPreferences.Editor
+    lateinit var map:GoogleMap
 
     fun setItem(item: TodoPackageDto, manualCertOnClickListener: AdapterToDoPackageList.ManualCertOnClickListener){
         bind.todoNameTextView.setText(item.name)
@@ -139,6 +151,77 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
 
                 setChartData(interActiveScreenRecord)
             }
+
+            if(item.certType == "LOCATE_AUTO"){
+                sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
+                sharedPrefEditor = sharedPref.edit()
+
+                // dialog로 상태 출력
+                val dialog = Dialog(context)
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+                if (dialogMapBinding.root.parent != null) {
+                    (dialogMapBinding.root.parent as ViewGroup).removeView(
+                        dialogMapBinding.root
+                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
+                    dialog.dismiss()
+                }
+                dialog.setContentView(dialogMapBinding.root)
+                var params: WindowManager.LayoutParams = dialog.getWindow()!!.getAttributes()
+                params.width = (context.getResources()
+                    .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
+                params.height = (context.getResources()
+                    .getDisplayMetrics().heightPixels * 0.5).toInt() // device의 세로 길이에 비례하여  결정
+                dialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                dialog.getWindow()!!.setAttributes(params)
+                dialog.getWindow()!!.setGravity(Gravity.CENTER)
+                dialog.setCancelable(true)
+                dialog.show()
+
+
+                // google map 설정
+
+                // 현재 저장된 위치 정보 가져옴
+                var sharedPrefKey = "currentLocateRecord"+
+                        item.year.toString()+item.month.toString()+
+                        item.day.toString()+item.hour.toString()+item.minute.toString()
+                var currentLocateRecord = mutableListOf<Double>()
+                var emptyCurrentLocateRecord = gson.toJson(currentLocateRecord)
+
+                var currentLocateRecordJson = sharedPref.getString(sharedPrefKey,emptyCurrentLocateRecord).toString()
+                currentLocateRecord = gson.fromJson(currentLocateRecordJson)
+
+                // 목표 위치 가져옴
+                var sharedPrefKeyGoal = "goalLocateRecord"+
+                        item.year.toString()+item.month.toString()+item.day+item.hour.toString()+item.minute.toString()
+                var goalLocateRecord = mutableListOf<Double>()
+                var emptyGoalLocateRecord = gson.toJson(goalLocateRecord)
+
+                var goalLocateRecordJson = sharedPref.getString(sharedPrefKeyGoal,emptyGoalLocateRecord).toString()
+                goalLocateRecord = gson.fromJson(goalLocateRecordJson)
+
+                var mapView = dialogMapBinding.mapInDialog
+                MapsInitializer.initialize(activity)
+                mapView.onCreate(dialog.onSaveInstanceState())
+                mapView.onResume()
+                mapView.getMapAsync(OnMapReadyCallback{
+                    map = it
+                    // Add a marker in Sydney and move the camera
+                    val goalLocate = LatLng(goalLocateRecord[0], goalLocateRecord[1])
+                    map.addMarker(MarkerOptions().position(goalLocate).title("목표지점"))
+
+                    var latitude = 0.0
+                    var longitude = 0.0
+                    if(!currentLocateRecord.isEmpty()){
+                        latitude = currentLocateRecord[0]
+                        longitude = currentLocateRecord[1]
+                    }
+
+                    val currentLocate = LatLng(latitude, longitude)
+                    map.addMarker(MarkerOptions().position(currentLocate).title("my location"))
+                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(goalLocate, 16F))
+                })
+
+            }
        }
     }
 
@@ -169,4 +252,5 @@ class TodoPackageHolder(val context: Context, var bind: ItemTodoPackageBinding, 
         dialogGraphBinding.graphResultTextView.setText("화면 꺼짐 비율: "+ offRatio +"%")
 
     }
+
 }

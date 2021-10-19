@@ -9,6 +9,8 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavController
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.R
@@ -20,14 +22,19 @@ import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.*
 
 class MainFragment : Fragment(){
+
     lateinit var fragmentMainBinding: FragmentMainBinding
     lateinit var itemTodoPackageBinding: ItemTodoPackageBinding
     lateinit var  dialogDefaultBinding: DialogDefaultBinding
     lateinit var dialogAddTodoBinding: DialogAddTodoBinding
     lateinit var dialogGraphBinding: DialogGraphBinding
+    lateinit var dialogMapBinding: DialogMapBinding
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -59,6 +66,10 @@ class MainFragment : Fragment(){
         dialogDefaultBinding = DialogDefaultBinding.inflate(layoutInflater)
         dialogAddTodoBinding = DialogAddTodoBinding.inflate(layoutInflater)
         dialogGraphBinding = DialogGraphBinding.inflate(layoutInflater)
+        dialogMapBinding = DialogMapBinding.inflate(layoutInflater)
+
+        // 테스트 애니메이션 실행
+        testAnimation()
 
         var todoByDayRecyclerView = fragmentMainBinding.fragmentMainRecyclerView
         var todoByDayRecyclerViewAdapter = setTodoByDayRecyclerView(todoByDayRecyclerView)
@@ -114,7 +125,8 @@ class MainFragment : Fragment(){
                 newTodo.day = Integer.parseInt(day)
 
                 if(dialogAddTodoBinding.autoCheckBox.isChecked){
-                    newTodo.certType = "auto"
+                    //newTodo.certType = "auto"
+                    newTodo.certType = "LOCATE_AUTO"
                 }
 
                 if(dialogAddTodoBinding.disableTimeCheckBox.isChecked){
@@ -131,6 +143,21 @@ class MainFragment : Fragment(){
 
                     newTodo.time = String.format("%02d",newTodo.hour) +":" + String.format("%02d",newTodo.minute)
                     todoList.add(newTodo)
+                    
+                    // 목표 위치 저장
+                    if(newTodo.certType == "LOCATE_AUTO"){
+                        var sharedPrefKeyGoal = "goalLocateRecord"+
+                                newTodo.year+newTodo.month+newTodo.day+newTodo.hour.toString()+newTodo.minute.toString()
+                        var goalLocateRecord = mutableListOf<Double>()
+                        
+                        goalLocateRecord.add(37.4767)
+                        goalLocateRecord.add(126.9820)
+
+                        var goalLocateRecordJson = gson.toJson(goalLocateRecord)
+
+                        sharedPrefEditor.putString(sharedPrefKeyGoal, goalLocateRecordJson) // 시간별로 따로 저장
+                        sharedPrefEditor.commit()
+                    }
                 } // 시간 설정 여부에 따라 다른 방식으로 dto 추가
 
                 todoListJson = gson.toJson(todoList)
@@ -164,6 +191,10 @@ class MainFragment : Fragment(){
             refreshTodoList()
         }
 
+        fragmentMainBinding.userCharactor.setOnClickListener(){
+            findNavController().navigate(R.id.action_mainFragment_to_myRoomFragment)
+        }
+
 
         val view = fragmentMainBinding.root
         return view
@@ -185,7 +216,7 @@ class MainFragment : Fragment(){
             }
         }
 
-        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
@@ -221,7 +252,7 @@ class MainFragment : Fragment(){
 
         Collections.sort(filteredTodoList, comparator)
 
-        recyclerView.adapter = AdapterToDoPackageList(requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
@@ -365,4 +396,26 @@ class MainFragment : Fragment(){
         setTodoByTimeRecyclerView(fragmentMainBinding.todoByTimeRecyclerView)
         setDateInfoRecyclerView(fragmentMainBinding.dateInfoRecyclerview)
     }
+
+    fun testAnimation(){
+        val scope = GlobalScope // 비동기 함수 진행
+        scope.launch {
+            while (true) {
+                delay(100)
+                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
+                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_1)
+                }
+                delay(100)
+                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
+                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_2)
+                }
+                delay(100)
+                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
+                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_3)
+                }
+            }
+        }
+
+    }
+
 }

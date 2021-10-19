@@ -7,5 +7,13 @@
     <fragment
         android:id="@+id/mainFragment"
         android:name="com.example.realtodoapp.ui.MainFragment"
-        android:label="MainFragment" />
+        android:label="MainFragment" >
+        <action
+            android:id="@+id/action_mainFragment_to_myRoomFragment"
+            app:destination="@id/myRoomFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/myRoomFragment"
+        android:name="MyRoomFragment"
+        android:label="MyRoomFragment" />
 </navigation>
