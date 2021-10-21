@@ -150,8 +150,8 @@ class MainFragment : Fragment(){
                                 newTodo.year+newTodo.month+newTodo.day+newTodo.hour.toString()+newTodo.minute.toString()
                         var goalLocateRecord = mutableListOf<Double>()
                         
-                        goalLocateRecord.add(37.4767)
-                        goalLocateRecord.add(126.9820)
+                        goalLocateRecord.add(37.4505)
+                        goalLocateRecord.add(126.6575)
 
                         var goalLocateRecordJson = gson.toJson(goalLocateRecord)
 

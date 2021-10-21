@@ -116,7 +116,7 @@ class TodoPackageHolder(val activity: FragmentActivity, val context: Context, va
             }
 
             // 자동 인식 테스트 현황 출력
-            if(item.certType == "auto"){
+            if(item.certType == "SCREEN_AUTO"){
 
                 sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
                 sharedPrefEditor = sharedPref.edit()

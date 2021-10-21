@@ -25,7 +25,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="match_parent"
-                android:src="@drawable/meat" />
+                android:src="@drawable/exclamation_mark" />
 
 
             <TextView
@@ -48,8 +48,7 @@
                 android:id="@+id/category_imageView"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="match_parent"
-                android:src="@drawable/meat" />
+                android:layout_height="match_parent" />
 
             <!--            <androidx.recyclerview.widget.RecyclerView-->
 <!--                android:id = "@+id/list_todo_package_recyclerView"-->

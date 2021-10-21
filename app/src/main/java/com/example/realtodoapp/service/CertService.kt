@@ -153,7 +153,7 @@ class CertService: Service(), SensorEventListener {
 
                     // 현재 인증되어야 하는 todo에 따라 인증 실행
                     for (todo in filteredTodoList) {  // 오늘 날짜의 todo에 한해서 체크
-                        if (todo.certType == "auto" && todo.success == false) // 화면 인식 방식
+                        if (todo.certType == "SCREEN_AUTO" && todo.success == false) // 화면 인식 방식
                         {
                             var startHour = todo.hour
                             var startMinute = todo.minute
@@ -406,7 +406,7 @@ class CertService: Service(), SensorEventListener {
                 sharedPrefEditor.putString(sharedPrefKey, currentLocateRecordJson) // 시간별로 따로 저장
                 sharedPrefEditor.commit()
 
-                setAlarm("위치", latitude.toString() + " " + longitude.toString())
+                //setAlarm("위치", latitude.toString() + " " + longitude.toString())
 
                 // 목표 위치에 도달했는지 확인
                 var sharedPrefKeyGoal = "goalLocateRecord"+
@@ -418,8 +418,8 @@ class CertService: Service(), SensorEventListener {
                 goalLocateRecord = gson.fromJson(goalLocateRecordJson)
 
                 if(abs(latitude - goalLocateRecord[0]) < 0.001 && abs(longitude - goalLocateRecord[1]) < 0.001){
-                    setAlarm("가까움", abs(latitude - goalLocateRecord[0]).toString() + " " + abs(longitude - goalLocateRecord[1]).toString())
-                    return false
+                    //setAlarm("가까움", abs(latitude - goalLocateRecord[0]).toString() + " " + abs(longitude - goalLocateRecord[1]).toString())
+                    return true
                 }
             }
 
