@@ -294,12 +294,11 @@ class CertService: Service(), SensorEventListener {
                 var currentApp = AppUtil.getCurrentApp(applicationContext)
                 var isfail = false
                 Log.d("notUseAppList", notUseAppList.toString())
+                Log.d("currentApp", currentApp.packageName)
 
                 // 현재 띄워진 앱이 금지된 앱인지 판단
                 for (notUseApp in notUseAppList){
                     if(notUseApp.packageName == currentApp.packageName){
-
-                        Log.d("currentApp", currentApp.packageName)
 
                         interActiveScreenRecord.add(true)
                         isfail = true

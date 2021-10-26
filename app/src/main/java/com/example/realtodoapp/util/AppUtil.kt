@@ -52,11 +52,11 @@ class AppUtil {
         // 화면에 띄워지는 앱 불러오기
         fun getCurrentApp(context: Context) : UsageEvents.Event{
             val cal = Calendar.getInstance()
-            cal.add(Calendar.MINUTE, -1)
+            cal.add(Calendar.DATE, -1) // 현재 lastEvent가 시간 차이만큼만 정상적으로 return됨
 
             val usageStatsManager =
                 context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            val usageEvent = usageStatsManager.queryEvents(cal.timeInMillis, System.currentTimeMillis());
+            val usageEvent = usageStatsManager.queryEvents(cal.timeInMillis, System.currentTimeMillis())
 
             val usageEvents = mutableListOf<UsageEvents.Event>()
 
