@@ -177,6 +177,7 @@ class TodoPackageHolder(val activity: FragmentActivity, val context: Context, va
                 dialog.setCancelable(true)
                 dialog.show()
 
+                dialogMapBinding.textView.setText("목표 위치 도달 시 성공")
 
                 // google map 설정
 

@@ -10,9 +10,11 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
@@ -39,6 +41,8 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class MainFragment : Fragment(){
@@ -69,6 +73,7 @@ class MainFragment : Fragment(){
         super.onCreate(savedInstanceState)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("CheckResult", "CommitPrefEdits")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -126,6 +131,19 @@ class MainFragment : Fragment(){
             dialog.getWindow()!!.setGravity(Gravity.CENTER)
             dialog.setCancelable(true)
             dialog.show()
+
+            // 현재 시간으로 default editText 설정
+            val current = LocalDateTime.now()
+            val yearFormatter = DateTimeFormatter.ofPattern("yyyy")
+            val monthFormatter = DateTimeFormatter.ofPattern("MM")
+            val dayFormatter = DateTimeFormatter.ofPattern("dd")
+            val hourFormatter = DateTimeFormatter.ofPattern("HH")
+            val minuteFormatter = DateTimeFormatter.ofPattern("mm")
+            dialogAddTodoBinding.todoYearEditText.setText(current.format(yearFormatter))
+            dialogAddTodoBinding.todoMonthEditText.setText(current.format(monthFormatter))
+            dialogAddTodoBinding.todoDayEditText.setText(current.format(dayFormatter))
+            dialogAddTodoBinding.todoHourEditText.setText(current.format(hourFormatter))
+            dialogAddTodoBinding.todoMinuteEditText.setText(current.format(minuteFormatter))
 
             // 예외 앱 선택 기능 띄우기
             dialogAddTodoBinding.selectAppButton.setOnClickListener(){
