@@ -27,6 +27,7 @@ import com.example.realtodoapp.R
 import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.ui.MainActivity
 import com.example.realtodoapp.ui.MainFragment
+import com.example.realtodoapp.util.AppUtil
 import com.google.android.gms.location.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -99,7 +100,7 @@ class CertService: Service(), SensorEventListener {
         return null
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     @SuppressLint("SimpleDateFormat")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {  // service 시작 시 수행됨
 
@@ -245,7 +246,7 @@ class CertService: Service(), SensorEventListener {
 
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     @SuppressLint("SimpleDateFormat")
     fun recordActionScreen(startHour:Int, startMinute:Int, endHour:Int, endMinute:Int): Int{ // 기기에 화면 켜짐/꺼짐 기록 저장, 인증 현황 return
         // 현재 시간 불러옴
@@ -288,7 +289,28 @@ class CertService: Service(), SensorEventListener {
 
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (pm.isInteractive) {
-                interActiveScreenRecord.add(true)
+                // 금지된 앱을 화면에 띄울 때만 인식
+                var notUseAppList = AppUtil.loadNotUseAppList(applicationContext)
+                var currentApp = AppUtil.getCurrentApp(applicationContext)
+                var isfail = false
+                Log.d("notUseAppList", notUseAppList.toString())
+
+                // 현재 띄워진 앱이 금지된 앱인지 판단
+                for (notUseApp in notUseAppList){
+                    if(notUseApp.packageName == currentApp.packageName){
+
+                        Log.d("currentApp", currentApp.packageName)
+
+                        interActiveScreenRecord.add(true)
+                        isfail = true
+                        break
+                    }
+                    if(isfail == true)
+                        break
+                }
+                if(isfail == false){
+                    interActiveScreenRecord.add(false)
+                }
             } else {
                 interActiveScreenRecord.add(false)
             }

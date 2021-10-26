@@ -188,18 +188,43 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:weightSum="7"
+                    android:weightSum="8"
                     android:gravity="center"
                     android:orientation="horizontal">
 
                     <CheckBox
-                        android:id="@+id/auto_checkBox"
+                        android:id="@+id/auto_screen_checkBox"
                         android:layout_width="0dp"
                         android:layout_weight="2"
                         android:layout_height="wrap_content"
-                        android:text="자동"
+                        android:text="화면자동"
                         android:textColor="#000000"
                         android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/select_app_button"
+                        android:text="앱 선택"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_height="wrap_content"/>
+
+                    <CheckBox
+                        android:id="@+id/auto_locate_checkBox"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_height="wrap_content"
+                        android:text="위치자동"
+                        android:textColor="#000000"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/select_locate_button"
+                        android:text="위치선택"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_height="wrap_content"/>
+
+
 
                 </LinearLayout>
 

@@ -2,24 +2,38 @@ package com.example.realtodoapp.ui
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.app.usage.UsageStats
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.*
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.R
+import com.example.realtodoapp.adapter.AdapterAppInfoList
 import com.example.realtodoapp.adapter.AdapterDateInfoList
 import com.example.realtodoapp.adapter.AdapterToDoPackageList
 import com.example.realtodoapp.databinding.*
 import com.example.realtodoapp.model.DateInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
+import com.example.realtodoapp.util.AppUtil
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.MapsInitializer
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.GlobalScope
@@ -35,6 +49,7 @@ class MainFragment : Fragment(){
     lateinit var dialogAddTodoBinding: DialogAddTodoBinding
     lateinit var dialogGraphBinding: DialogGraphBinding
     lateinit var dialogMapBinding: DialogMapBinding
+    lateinit var dialogAppListBinding: DialogAppListBinding
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -45,6 +60,9 @@ class MainFragment : Fragment(){
     var curYear = 0
     var curMonth = 0
     var curDay = 0
+
+    var saveLatitude = 0.0
+    var saveLongitude = 0.0
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,6 +85,7 @@ class MainFragment : Fragment(){
         dialogAddTodoBinding = DialogAddTodoBinding.inflate(layoutInflater)
         dialogGraphBinding = DialogGraphBinding.inflate(layoutInflater)
         dialogMapBinding = DialogMapBinding.inflate(layoutInflater)
+        dialogAppListBinding = DialogAppListBinding.inflate(layoutInflater)
 
         // 테스트 애니메이션 실행
         testAnimation()
@@ -108,6 +127,119 @@ class MainFragment : Fragment(){
             dialog.setCancelable(true)
             dialog.show()
 
+            // 예외 앱 선택 기능 띄우기
+            dialogAddTodoBinding.selectAppButton.setOnClickListener(){
+                // dialog 띄움
+                val appListDialog = Dialog(requireContext())
+                appListDialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+                if(dialogAppListBinding.root.parent != null){
+                    (dialogAppListBinding.root.parent as ViewGroup).removeView(
+                        dialogAppListBinding.root
+                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
+                    appListDialog.dismiss()
+                }
+                appListDialog.setContentView(dialogAppListBinding.root)
+                var params: WindowManager.LayoutParams = appListDialog.getWindow()!!.getAttributes()
+                params.width = (requireContext().getResources()
+                    .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
+                params.height = (requireContext().getResources()
+                    .getDisplayMetrics().heightPixels * 0.7).toInt() // device의 세로 길이에 비례하여  결정
+                appListDialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                appListDialog.getWindow()!!.setAttributes(params)
+                appListDialog.getWindow()!!.setGravity(Gravity.CENTER)
+                appListDialog.setCancelable(true)
+                appListDialog.show()
+
+                var appInfoListRecyclerview = dialogAppListBinding.appListRecyclerview
+                var appInfoListRecyclerviewAdapter = setAppInfoListRecyclerview(appInfoListRecyclerview)
+
+                dialogAppListBinding.okButton.setOnClickListener() {
+                    if (dialogAppListBinding.root.parent != null) {
+                        (dialogAppListBinding.root.parent as ViewGroup).removeView(
+                            dialogAppListBinding.root
+                        ) // 남아 있는 view 삭제
+                        appListDialog.dismiss()
+                    }
+                }
+            }
+
+            // 지도에서 목표 위치 선택 기능 띄우기
+            dialogAddTodoBinding.selectLocateButton.setOnClickListener(){
+                // dialog 띄움
+                val mapDialog = Dialog(requireContext())
+                mapDialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+                if(dialogMapBinding.root.parent != null){
+                    (dialogMapBinding.root.parent as ViewGroup).removeView(
+                        dialogMapBinding.root
+                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
+                    mapDialog.dismiss()
+                }
+                mapDialog.setContentView(dialogMapBinding.root)
+                var params: WindowManager.LayoutParams = mapDialog.getWindow()!!.getAttributes()
+                params.width = (requireContext().getResources()
+                    .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
+                params.height = (requireContext().getResources()
+                    .getDisplayMetrics().heightPixels * 0.7).toInt() // device의 세로 길이에 비례하여  결정
+                mapDialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                mapDialog.getWindow()!!.setAttributes(params)
+                mapDialog.getWindow()!!.setGravity(Gravity.CENTER)
+                mapDialog.setCancelable(true)
+                mapDialog.show()
+
+                dialogMapBinding.textView.setText("목표 위치 설정")
+
+                // 목표 위치를 지도에서 설정
+                MapsInitializer.initialize(requireContext())
+                dialogMapBinding.mapInDialog.onCreate(dialog.onSaveInstanceState())
+                dialogMapBinding.mapInDialog.onResume()
+
+                dialogMapBinding.mapInDialog.getMapAsync(OnMapReadyCallback {
+                    if(saveLatitude == 0.0 && saveLongitude == 0.0){
+                        it.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(37.4921, 126.9730), 8F))
+                    }
+                    else{
+                        it.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(saveLatitude, saveLongitude), 16F))
+                    }
+
+                    it.setOnMapClickListener (object: GoogleMap.OnMapClickListener {
+                        override fun onMapClick(latLng: LatLng) {
+                            it.clear()
+
+                            it.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16F))
+
+                            val location = LatLng(latLng.latitude,latLng.longitude)
+                            it.addMarker(MarkerOptions().position(location))
+
+                            // 현재 찍은 위치를 전역변수로 저장해둠
+                            saveLatitude = latLng.latitude
+                            saveLongitude = latLng.longitude
+                        }
+
+                    })
+                })
+                dialogMapBinding.okButton.setOnClickListener(){
+                    if(dialogMapBinding.root.parent != null){
+                        (dialogMapBinding.root.parent as ViewGroup).removeView(
+                            dialogMapBinding.root
+                        ) // 남아 있는 view 삭제
+                        mapDialog.dismiss()
+                    }
+                }
+            }
+
+            //  체크 항목 변경
+            dialogAddTodoBinding.autoScreenCheckBox.setOnCheckedChangeListener{ _, isChecked ->
+                if(isChecked){
+                    dialogAddTodoBinding.autoLocateCheckBox.setChecked(false)
+                }
+            }
+            dialogAddTodoBinding.autoLocateCheckBox.setOnCheckedChangeListener{ _, isChecked ->
+                if(isChecked){
+                    dialogAddTodoBinding.autoScreenCheckBox.setChecked(false)
+                }
+            }
+
+
             dialogAddTodoBinding.okButton.setOnClickListener(){
                 var newTodo = TodoPackageDto()
                 var year = dialogAddTodoBinding.todoYearEditText.getText().toString()
@@ -124,10 +256,13 @@ class MainFragment : Fragment(){
                 newTodo.month = Integer.parseInt(month)
                 newTodo.day = Integer.parseInt(day)
 
-                if(dialogAddTodoBinding.autoCheckBox.isChecked){
-                    //newTodo.certType = "auto"
+                if(dialogAddTodoBinding.autoScreenCheckBox.isChecked){
+                    newTodo.certType = "SCREEN_AUTO"
+                }
+                else if(dialogAddTodoBinding.autoLocateCheckBox.isChecked){
                     newTodo.certType = "LOCATE_AUTO"
                 }
+
 
                 if(dialogAddTodoBinding.disableTimeCheckBox.isChecked){
                     newTodo.name = dialogAddTodoBinding.todoNameEditText.getText().toString()
@@ -146,12 +281,14 @@ class MainFragment : Fragment(){
                     
                     // 목표 위치 저장
                     if(newTodo.certType == "LOCATE_AUTO"){
+                        // todo마다 다른 목표 위치를 저장할 필요가 있으므로 각기 다른 곳에 저장
                         var sharedPrefKeyGoal = "goalLocateRecord"+
                                 newTodo.year+newTodo.month+newTodo.day+newTodo.hour.toString()+newTodo.minute.toString()
                         var goalLocateRecord = mutableListOf<Double>()
-                        
-                        goalLocateRecord.add(37.4505)
-                        goalLocateRecord.add(126.6575)
+
+                        // 전역변수로 저장해둔 위치 불러오기
+                        goalLocateRecord.add(saveLatitude)
+                        goalLocateRecord.add(saveLongitude)
 
                         var goalLocateRecordJson = gson.toJson(goalLocateRecord)
 
@@ -182,10 +319,7 @@ class MainFragment : Fragment(){
         }
 
         fragmentMainBinding.deleteAllButton.setOnClickListener(){
-            var emptyTodoList = mutableListOf<TodoPackageDto>()
-            var emptyTodoListJson = gson.toJson(emptyTodoList)
-
-            sharedPrefEditor.putString("myTodoList", emptyTodoListJson)
+            sharedPrefEditor.clear()
             sharedPrefEditor.commit()
 
             refreshTodoList()
@@ -416,6 +550,18 @@ class MainFragment : Fragment(){
             }
         }
 
+    }
+
+    fun setAppInfoListRecyclerview(recyclerView: RecyclerView): AdapterAppInfoList{
+        val installedApps = AppUtil.getInstalledApp(requireContext())
+
+        recyclerView.adapter = AdapterAppInfoList(requireContext(), installedApps)
+        val adapter = recyclerView.adapter as AdapterAppInfoList
+        val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
+        recyclerView.layoutManager = linearLayoutManager
+        recyclerView.setHasFixedSize(true)
+
+        return adapter
     }
 
 }
