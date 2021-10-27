@@ -44,6 +44,12 @@ class AppUtil {
                 else if((app.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0){
                     notSystemApps.add(app)
                 }
+                else if(app.packageName == "com.google.android.youtube"){
+                    notSystemApps.add(app)
+                }
+                else if(app.packageName == "com.android.chrome"){
+                    notSystemApps.add(app)
+                }
             }
 
             return notSystemApps
