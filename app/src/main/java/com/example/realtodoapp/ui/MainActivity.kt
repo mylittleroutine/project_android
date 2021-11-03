@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat.getSystemService
 import com.example.realtodoapp.R
 import com.example.realtodoapp.service.CertService
 import com.example.realtodoapp.util.AppUtil
+import com.example.realtodoapp.util.TfliteModelUtil
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -34,6 +35,10 @@ import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kr.co.shineware.nlp.komoran.constant.DEFAULT_MODEL
+import kr.co.shineware.nlp.komoran.core.Komoran
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 
 class MainActivity : AppCompatActivity(){
@@ -57,6 +62,29 @@ class MainActivity : AppCompatActivity(){
 
         // 테스트
         AppUtil.checkForPermission(this)
+
+        //komoran 테스트
+//        var komoran = Komoran(DEFAULT_MODEL.FULL)
+//        var sample = "좋은 아침입니다"
+//        var komoranResult = komoran.analyze(sample)
+//        var tokenList = komoranResult.tokenList
+//        var morphList = mutableListOf<String>()
+//        for(token in tokenList){
+//            morphList.add(token.morph)
+//        }
+//        Log.d("komoran", morphList.toString())
+
+
+        // Ai 테스트
+        var tfModel = TfliteModelUtil.loadTfModel(this)
+        var input = Array(1){"오늘도 비타민을 꾸준히 먹었다! 기분이 한결 좋아지는듯?"}
+        var output: ByteBuffer = ByteBuffer.allocate(2*4).order(ByteOrder.nativeOrder())
+        tfModel.run(input, output)
+
+        // bytebuffer float 변환
+        output.rewind()
+        var pro = output.asFloatBuffer()
+        Log.d("AITEST", pro.get(0).toString() + " "+ pro.get(1).toString())
 
     }
 
