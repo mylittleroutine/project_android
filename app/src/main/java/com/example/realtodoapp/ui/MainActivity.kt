@@ -76,15 +76,15 @@ class MainActivity : AppCompatActivity(){
 
 
         // Ai 테스트
-        var tfModel = TfliteModelUtil.loadTfModel(this)
-        var input = Array(1){"오늘도 비타민을 꾸준히 먹었다! 기분이 한결 좋아지는듯?"}
-        var output: ByteBuffer = ByteBuffer.allocate(2*4).order(ByteOrder.nativeOrder())
-        tfModel.run(input, output)
-
-        // bytebuffer float 변환
-        output.rewind()
-        var pro = output.asFloatBuffer()
-        Log.d("AITEST", pro.get(0).toString() + " "+ pro.get(1).toString())
+//        var tfModel = TfliteModelUtil.loadTfModel(this)
+//        var input = Array(1){"당신의 긍정적인 자세에 매우 감사하게 생각해요"}
+//        var output: ByteBuffer = ByteBuffer.allocate(2*4).order(ByteOrder.nativeOrder())
+//        tfModel.run(input, output)
+//
+//        // bytebuffer float 변환
+//        output.rewind()
+//        var pro = output.asFloatBuffer()
+//        Log.d("AITEST", pro.get(0).toString() + " "+ pro.get(1).toString())
 
     }
 

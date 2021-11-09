@@ -11,9 +11,16 @@
         <action
             android:id="@+id/action_mainFragment_to_myRoomFragment"
             app:destination="@id/myRoomFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_reviewFragment"
+            app:destination="@id/reviewFragment" />
     </fragment>
     <fragment
         android:id="@+id/myRoomFragment"
         android:name="MyRoomFragment"
         android:label="MyRoomFragment" />
+    <fragment
+        android:id="@+id/reviewFragment"
+        android:name="com.example.realtodoapp.ui.ReviewFragment"
+        android:label="ReviewFragment" />
 </navigation>

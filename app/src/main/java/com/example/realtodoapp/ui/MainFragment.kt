@@ -16,6 +16,7 @@ import android.util.Log
 import android.view.*
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat.getSystemService
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
@@ -103,6 +104,12 @@ class MainFragment : Fragment(){
 
         var dateInfoRecyclerView = fragmentMainBinding.dateInfoRecyclerview
         var dateInfoRecyclerViewAdapter = setDateInfoRecyclerView(dateInfoRecyclerView)
+
+        fragmentMainBinding.writeReviewButton.setOnClickListener(){
+            // fragment에 선택된 날짜 넘겨줌
+            val bundle = bundleOf("curYear" to curYear.toString(), "curMonth" to curMonth.toString(), "curDay" to curDay.toString())
+            findNavController().navigate(R.id.action_mainFragment_to_reviewFragment, bundle)
+        }
 
         fragmentMainBinding.addTodoButton.setOnClickListener(){
             var todoList = mutableListOf<TodoPackageDto>()
