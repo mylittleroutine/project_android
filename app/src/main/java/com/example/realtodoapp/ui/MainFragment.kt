@@ -111,6 +111,10 @@ class MainFragment : Fragment(){
             findNavController().navigate(R.id.action_mainFragment_to_reviewFragment, bundle)
         }
 
+        fragmentMainBinding.communityButton.setOnClickListener(){
+            findNavController().navigate(R.id.action_mainFragment_to_communityFragment)
+        }
+
         fragmentMainBinding.addTodoButton.setOnClickListener(){
             var todoList = mutableListOf<TodoPackageDto>()
             var emptyTodoListJson = gson.toJson(todoList)

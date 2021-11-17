@@ -80,4 +80,7 @@ dependencies {
         exclude group: 'com.github.shineware', module: 'commons'
         exclude group: 'com.github.shineware', module: 'aho-corasick'
     }
+
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.8.2'
 }

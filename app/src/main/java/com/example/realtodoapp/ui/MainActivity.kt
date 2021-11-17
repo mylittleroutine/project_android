@@ -1,44 +1,24 @@
 package com.example.realtodoapp.ui
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.ActivityManager
-import android.app.AppOpsManager
-import android.app.AppOpsManager.MODE_ALLOWED
-import android.app.AppOpsManager.OPSTR_GET_USAGE_STATS
-import android.app.usage.UsageStatsManager
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getSystemService
 import com.example.realtodoapp.R
 import com.example.realtodoapp.service.CertService
 import com.example.realtodoapp.util.AppUtil
-import com.example.realtodoapp.util.TfliteModelUtil
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kr.co.shineware.nlp.komoran.constant.DEFAULT_MODEL
-import kr.co.shineware.nlp.komoran.core.Komoran
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import com.example.realtodoapp.connect.RetrofitInterface
+import com.google.gson.JsonElement
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 
 class MainActivity : AppCompatActivity(){
@@ -85,6 +65,23 @@ class MainActivity : AppCompatActivity(){
 //        output.rewind()
 //        var pro = output.asFloatBuffer()
 //        Log.d("AITEST", pro.get(0).toString() + " "+ pro.get(1).toString())
+
+        // retrofit 테스트
+//        val url = "http://10.0.2.2:3000"
+//        val retrofit = Retrofit.Builder()
+//            .baseUrl(url)
+//            .addConverterFactory(GsonConverterFactory.create())
+//            .build()
+//        var server = retrofit.create(RetrofitInterface::class.java) // 만들어둔 interface와 연결
+//
+//        server.getAllFeeds().enqueue(object: Callback<JsonElement>{
+//            override fun onFailure(call: Call<JsonElement>, t: Throwable) {
+//                Log.d("getAllFeedsFail : ", "Fail")
+//            }
+//            override fun onResponse(call: Call<JsonElement>, response: Response<JsonElement>) {
+//                Log.d("getAllFeeds : ", response.body().toString())
+//            }
+//        })
 
     }
 

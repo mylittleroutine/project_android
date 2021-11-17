@@ -23,8 +23,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kr.co.shineware.nlp.komoran.constant.DEFAULT_MODEL
+import kr.co.shineware.nlp.komoran.core.Komoran
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 
 class ReviewFragment: Fragment() {
     lateinit var fragmentReviewBinding: FragmentReviewBinding
@@ -63,57 +66,110 @@ class ReviewFragment: Fragment() {
         }
 
         fragmentReviewBinding.submitButton.setOnClickListener(){
-            var input = fragmentReviewBinding.reviewEditText.text.toString()
-            var totalResult = getAIResult(input) * 100
-            fragmentReviewBinding.resultProgressView.progress = totalResult
-
-            if(totalResult > lastResult){
-                upArrowAnimation()
-            }
-            else if(totalResult < lastResult){
-                downArrowAnimation()
-            }
-            lastResult = totalResult
-
-            // 세부 글자 색상 변경 과정
-            fragmentReviewBinding.reviewEditText.text.clear()
-
-            // 공백 기준으로 나눔
-            var token = input.split(' ')
-            for (element in token){
-                if(element!= "") {
-                    val builder = SpannableStringBuilder(element)
-                    if (getAIResult(element) * 100 > 60) {
-                        builder.setSpan(
-                            ForegroundColorSpan(Color.BLUE), 0, element.length,
-                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
-                    } else if(getAIResult(element) * 100 < 40){
-                        builder.setSpan(
-                            ForegroundColorSpan(Color.RED), 0, element.length,
-                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
-                    }
-                    else{
-                        builder.setSpan(
-                            ForegroundColorSpan(Color.BLACK), 0, element.length,
-                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                        )
-                    }
-                    fragmentReviewBinding.reviewEditText.text.append(builder)
-                    fragmentReviewBinding.reviewEditText.text.append(" ")
-                }
-            }
+            runSentenceAI()
+            runInterestAI()
         }
 
         return view
     }
 
-    fun getAIResult(input:String): Float{
-        var tfModel = TfliteModelUtil.loadTfModel(requireActivity())
-        var input = Array(1){input+" "}
+    @SuppressLint("SetTextI18n")
+    fun runInterestAI(){
+        var input = fragmentReviewBinding.reviewEditText.text.toString()
+        // 전체 문장일 경우만 형태소 분리하여 다시 합친 후 모델에 넣음
+        var output = getInterestModelResult(input)
+        fragmentReviewBinding.firstInterestTextView.setText("운동 : "+ (output.get(0)* 100).toInt().toString())
+        fragmentReviewBinding.secondInterestTextView.setText("독서 : "+ (output.get(1)* 100).toInt().toString())
+        fragmentReviewBinding.thirdInterestTextView.setText("여행 : "+ (output.get(2)* 100).toInt().toString())
+        fragmentReviewBinding.forthInterestTextView.setText("요리 : "+ (output.get(3)* 100).toInt().toString())
+    }
+
+    fun runSentenceAI(){
+        var input = fragmentReviewBinding.reviewEditText.text.toString()
+        // 전체 문장일 경우만 형태소 분리하여 다시 합친 후 모델에 넣음
+        var totalResult = getSentenceModelResult(input, true) * 100
+        fragmentReviewBinding.resultProgressView.progress = totalResult
+
+        if(totalResult > lastResult){
+            upArrowAnimation()
+        }
+        else if(totalResult < lastResult){
+            downArrowAnimation()
+        }
+        lastResult = totalResult
+
+//        // 세부 글자 색상 변경 과정
+//        fragmentReviewBinding.reviewEditText.text.clear()
+//
+//        // 공백 기준으로 나눔
+//        var token = input.split(' ')
+//        for (element in token){
+//            if(element!= "") {
+//                val builder = SpannableStringBuilder(element)
+//                if (getSentenceModelResult(element, false) * 100 > 60) {
+//                    builder.setSpan(
+//                        ForegroundColorSpan(Color.BLUE), 0, element.length,
+//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+//                    )
+//                } else if(getSentenceModelResult(element, false) * 100 < 40){
+//                    builder.setSpan(
+//                        ForegroundColorSpan(Color.RED), 0, element.length,
+//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+//                    )
+//                }
+//                else{
+//                    builder.setSpan(
+//                        ForegroundColorSpan(Color.BLACK), 0, element.length,
+//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+//                    )
+//                }
+//                fragmentReviewBinding.reviewEditText.text.append(builder)
+//                fragmentReviewBinding.reviewEditText.text.append(" ")
+//            }
+//        }
+    }
+
+    fun getInterestModelResult(input: String):FloatBuffer{
+        var modifiedInput = input
+
+        var komoran = Komoran(DEFAULT_MODEL.FULL)
+        var komoranResult = komoran.analyze(input)
+        var tokenList = komoranResult.tokenList
+        modifiedInput = ""
+
+        for(token in tokenList){
+            modifiedInput += token.morph + " "
+        }
+
+        var tfModel = TfliteModelUtil.loadInterestModel(requireActivity())
+        var inputArray = Array(1){modifiedInput+" "}
+        var output: ByteBuffer = ByteBuffer.allocate(4*4).order(ByteOrder.nativeOrder())
+        tfModel.run(inputArray, output)
+
+        // bytebuffer float 변환
+        output.rewind()
+        var pro = output.asFloatBuffer()
+        return pro
+    }
+
+    fun getSentenceModelResult(input:String, toMorph:Boolean): Float{
+        var modifiedInput = input
+        if(toMorph == true){
+            var komoran = Komoran(DEFAULT_MODEL.FULL)
+            var komoranResult = komoran.analyze(input)
+            var tokenList = komoranResult.tokenList
+            modifiedInput = ""
+
+            for(token in tokenList){
+                modifiedInput += token.morph + " "
+            }
+            Log.d("modifiedInput", modifiedInput)
+        }
+
+        var tfModel = TfliteModelUtil.loadSentenceModel(requireActivity())
+        var inputArray = Array(1){modifiedInput+" "}
         var output: ByteBuffer = ByteBuffer.allocate(2*4).order(ByteOrder.nativeOrder())
-        tfModel.run(input, output)
+        tfModel.run(inputArray, output)
 
         // bytebuffer float 변환
         output.rewind()
@@ -129,6 +185,10 @@ class ReviewFragment: Fragment() {
     fun saveReview(year:String, month:String, day:String, review:String){
         sharedPrefEditor.putString("review-"+year+month+day, review) // 시간별로 따로 저장
         sharedPrefEditor.commit()
+    }
+
+    fun shareReview(year:String, month:String, day:String, review:String){
+
     }
 
     fun upArrowAnimation(){

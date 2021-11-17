@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/green_round_layout"
+        android:orientation="vertical"
+        android:layout_margin= "10dp">
+
+        <TextView
+            android:id= "@+id/feed_writer"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_margin= "20dp"
+            android:gravity="top"
+            android:hint="게시자 이름"
+            android:privateImeOptions="defaultInputmode=korean">
+        </TextView>
+
+        <TextView
+            android:id= "@+id/feed_title"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_margin= "20dp"
+            android:gravity="top"
+            android:hint="글 제목"
+            android:privateImeOptions="defaultInputmode=korean">
+        </TextView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin= "15dp"
+            android:padding="10dp"
+            android:background="@drawable/round_layout">
+
+            <TextView
+                android:id= "@+id/feed_contents"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="글 내용"
+                android:privateImeOptions="defaultInputmode=korean">
+            </TextView>
+
+
+        </LinearLayout>
+
+    </LinearLayout>
+</layout>
