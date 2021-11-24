@@ -28,6 +28,7 @@ import com.example.realtodoapp.adapter.AdapterDateInfoList
 import com.example.realtodoapp.adapter.AdapterToDoPackageList
 import com.example.realtodoapp.databinding.*
 import com.example.realtodoapp.model.DateInfoDto
+import com.example.realtodoapp.model.MemberInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.util.AppUtil
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
@@ -95,6 +96,15 @@ class MainFragment : Fragment(){
 
         // 테스트 애니메이션 실행
         testAnimation()
+
+        // 저장된 id 정보 불러오기
+        var loginMemberInfo = MemberInfoDto()
+        var emptyLoginMemberInfo = gson.toJson(loginMemberInfo)
+        var loginMemberInfoJson = sharedPref.getString("loginMemberInfo",emptyLoginMemberInfo).toString()
+        loginMemberInfo = gson.fromJson(loginMemberInfoJson)
+
+        // 사용자 이름 업데이트
+        fragmentMainBinding.userName.setText(loginMemberInfo.mem_name)
 
         var todoByDayRecyclerView = fragmentMainBinding.fragmentMainRecyclerView
         var todoByDayRecyclerViewAdapter = setTodoByDayRecyclerView(todoByDayRecyclerView)
@@ -379,7 +389,7 @@ class MainFragment : Fragment(){
             }
         }
 
-        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), this, requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
@@ -415,7 +425,7 @@ class MainFragment : Fragment(){
 
         Collections.sort(filteredTodoList, comparator)
 
-        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
+        recyclerView.adapter = AdapterToDoPackageList(requireActivity(), this, requireContext(), filteredTodoList, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
         val adapter = recyclerView.adapter as AdapterToDoPackageList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager

@@ -10,7 +10,11 @@ import android.graphics.drawable.ColorDrawable
 import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.os.bundleOf
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.navigation.fragment.NavHostFragment.findNavController
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.R
 import com.example.realtodoapp.databinding.DialogDefaultBinding
@@ -30,7 +34,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
 
-class AdapterToDoPackageList(val activity: FragmentActivity, val context: Context, var list: List<TodoPackageDto>, var dialogDefaultBinding: DialogDefaultBinding,
+class AdapterToDoPackageList(val activity: FragmentActivity, val fragment: Fragment, val context: Context, var list: List<TodoPackageDto>, var dialogDefaultBinding: DialogDefaultBinding,
                              var dialogGraphBinding: DialogGraphBinding, var dialogMapBinding: DialogMapBinding) : RecyclerView.Adapter<TodoPackageHolder>(){
     var items = list
         @SuppressLint("NotifyDataSetChanged")
@@ -41,7 +45,7 @@ class AdapterToDoPackageList(val activity: FragmentActivity, val context: Contex
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TodoPackageHolder {
         var bind = ItemTodoPackageBinding.inflate(LayoutInflater.from(context), parent, false)
-        return TodoPackageHolder(activity, context, bind, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
+        return TodoPackageHolder(activity, fragment, context, bind, dialogDefaultBinding, dialogGraphBinding, dialogMapBinding)
     }
 
     override fun onBindViewHolder(holder: TodoPackageHolder, position: Int) {
@@ -67,7 +71,7 @@ class AdapterToDoPackageList(val activity: FragmentActivity, val context: Contex
     }
 }
 
-class TodoPackageHolder(val activity: FragmentActivity, val context: Context, var bind: ItemTodoPackageBinding, var dialogDefaultBinding: DialogDefaultBinding,
+class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, val context: Context, var bind: ItemTodoPackageBinding, var dialogDefaultBinding: DialogDefaultBinding,
                         var dialogGraphBinding: DialogGraphBinding, var dialogMapBinding: DialogMapBinding) : RecyclerView.ViewHolder(bind.root){
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -224,6 +228,12 @@ class TodoPackageHolder(val activity: FragmentActivity, val context: Context, va
 
             }
        }
+
+        bind.reviewImageView.setOnClickListener(){
+            val bundle = bundleOf("curYear" to item.year.toString(), "curMonth" to item.month.toString(), "curDay" to item.day.toString(),
+                "todoName" to item.name, "todoSuccess" to item.success)
+            findNavController(fragment).navigate(R.id.action_mainFragment_to_reviewFragment, bundle)
+        }
     }
 
     @SuppressLint("SetTextI18n")

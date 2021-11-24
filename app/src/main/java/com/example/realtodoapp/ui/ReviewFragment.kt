@@ -15,7 +15,11 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.realtodoapp.R
 import com.example.realtodoapp.databinding.FragmentReviewBinding
+import com.example.realtodoapp.model.FeedDto
+import com.example.realtodoapp.model.MemberInfoDto
 import com.example.realtodoapp.model.TodoPackageDto
+import com.example.realtodoapp.util.AIModelUtil
+import com.example.realtodoapp.util.RetrofitUtil
 import com.example.realtodoapp.util.TfliteModelUtil
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -34,6 +38,9 @@ class ReviewFragment: Fragment() {
     var lastResult = 50f
     lateinit var sharedPref: SharedPreferences
     lateinit var sharedPrefEditor : SharedPreferences.Editor
+
+    inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
+    var gson: Gson = Gson()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,18 +63,56 @@ class ReviewFragment: Fragment() {
         val curMonth = arguments?.getString("curMonth")
         val curDay = arguments?.getString("curDay")
 
-        fragmentReviewBinding.title.setText(curYear + "-" + curMonth + "-" + curDay + " 리뷰")
+        // todo를 리뷰할 경우 활성화
+        val todoName = arguments?.getString("todoName")
+        val todoSuccess = arguments?.getBoolean("todoSuccess")
 
-        fragmentReviewBinding.reviewEditText.setText(loadReview(curYear!!, curMonth!!, curDay!!))
+        if(todoName != null){
+            if(todoSuccess == true){
+                fragmentReviewBinding.title.setText(todoName +"(성공)"+" 리뷰")
+            }
+            else{
+                fragmentReviewBinding.title.setText(todoName +"(실패)"+" 리뷰")
+            }
+            fragmentReviewBinding.reviewEditText.setText(loadReview(curYear!!, curMonth!!, curDay!!, todoName))
+        }
+        else{
+            fragmentReviewBinding.title.setText(curYear + "-" + curMonth + "-" + curDay + " 리뷰", )
+            fragmentReviewBinding.reviewEditText.setText(loadReview(curYear!!, curMonth!!, curDay!!, "todayReview"))
+        }
+
 
         fragmentReviewBinding.saveButton.setOnClickListener(){
             var review = fragmentReviewBinding.reviewEditText.text.toString()
-            saveReview(curYear!!, curMonth!!, curDay!!, review)
+            if(todoName != null) {
+                saveReview(curYear!!, curMonth!!, curDay!!, todoName, review)
+            }
+            else{
+                saveReview(curYear!!, curMonth!!, curDay!!, "todayReview", review)
+            }
         }
 
         fragmentReviewBinding.submitButton.setOnClickListener(){
             runSentenceAI()
             runInterestAI()
+        }
+
+        fragmentReviewBinding.shareButton.setOnClickListener(){
+            var review = fragmentReviewBinding.reviewEditText.text.toString()
+            var feed = FeedDto()
+
+            // 저장된 id 정보 불러오기
+            var loginMemberInfo = MemberInfoDto()
+            var emptyLoginMemberInfo = gson.toJson(loginMemberInfo)
+            var loginMemberInfoJson = sharedPref.getString("loginMemberInfo",emptyLoginMemberInfo).toString()
+            loginMemberInfo = gson.fromJson(loginMemberInfoJson)
+
+            feed.mem_id = loginMemberInfo.mem_id
+
+            feed.feed_title = fragmentReviewBinding.title.text.toString()
+            feed.feed_text = review
+
+            RetrofitUtil.uploadFeed(feed)
         }
 
         return view
@@ -76,18 +121,58 @@ class ReviewFragment: Fragment() {
     @SuppressLint("SetTextI18n")
     fun runInterestAI(){
         var input = fragmentReviewBinding.reviewEditText.text.toString()
-        // 전체 문장일 경우만 형태소 분리하여 다시 합친 후 모델에 넣음
-        var output = getInterestModelResult(input)
+        var output = AIModelUtil.getInterestModelResult(input, requireActivity())
         fragmentReviewBinding.firstInterestTextView.setText("운동 : "+ (output.get(0)* 100).toInt().toString())
         fragmentReviewBinding.secondInterestTextView.setText("독서 : "+ (output.get(1)* 100).toInt().toString())
         fragmentReviewBinding.thirdInterestTextView.setText("여행 : "+ (output.get(2)* 100).toInt().toString())
         fragmentReviewBinding.forthInterestTextView.setText("요리 : "+ (output.get(3)* 100).toInt().toString())
+
+        // 세부 글자 색상 변경 과정
+        fragmentReviewBinding.reviewEditText.text.clear()
+
+        // . 기준으로 나눔
+        var token = input.split(".", "\n")
+        for (element in token){
+            if(element.length >= 2) {
+                val builder = SpannableStringBuilder(element)
+                if (AIModelUtil.getInterestModelResult(element, requireActivity()).get(0) * 100 > 50) {
+                    builder.setSpan(
+                        ForegroundColorSpan(Color.BLUE), 0, element.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                } else if(AIModelUtil.getInterestModelResult(element, requireActivity()).get(1) * 100 > 50){
+                    builder.setSpan(
+                        ForegroundColorSpan(Color.RED), 0, element.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                else if(AIModelUtil.getInterestModelResult(element, requireActivity()).get(2) * 100 > 50){
+                    builder.setSpan(
+                        ForegroundColorSpan(Color.GREEN), 0, element.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                else if(AIModelUtil.getInterestModelResult(element, requireActivity()).get(3) * 100 > 50){
+                    builder.setSpan(
+                        ForegroundColorSpan(Color.MAGENTA), 0, element.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                else{
+                    builder.setSpan(
+                        ForegroundColorSpan(Color.BLACK), 0, element.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                fragmentReviewBinding.reviewEditText.text.append(builder)
+                fragmentReviewBinding.reviewEditText.text.append(".")
+            }
+        }
     }
 
     fun runSentenceAI(){
         var input = fragmentReviewBinding.reviewEditText.text.toString()
-        // 전체 문장일 경우만 형태소 분리하여 다시 합친 후 모델에 넣음
-        var totalResult = getSentenceModelResult(input, true) * 100
+        var totalResult = AIModelUtil.getSentenceModelResult(input, requireActivity()) * 100
         fragmentReviewBinding.resultProgressView.progress = totalResult
 
         if(totalResult > lastResult){
@@ -98,92 +183,14 @@ class ReviewFragment: Fragment() {
         }
         lastResult = totalResult
 
-//        // 세부 글자 색상 변경 과정
-//        fragmentReviewBinding.reviewEditText.text.clear()
-//
-//        // 공백 기준으로 나눔
-//        var token = input.split(' ')
-//        for (element in token){
-//            if(element!= "") {
-//                val builder = SpannableStringBuilder(element)
-//                if (getSentenceModelResult(element, false) * 100 > 60) {
-//                    builder.setSpan(
-//                        ForegroundColorSpan(Color.BLUE), 0, element.length,
-//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-//                    )
-//                } else if(getSentenceModelResult(element, false) * 100 < 40){
-//                    builder.setSpan(
-//                        ForegroundColorSpan(Color.RED), 0, element.length,
-//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-//                    )
-//                }
-//                else{
-//                    builder.setSpan(
-//                        ForegroundColorSpan(Color.BLACK), 0, element.length,
-//                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-//                    )
-//                }
-//                fragmentReviewBinding.reviewEditText.text.append(builder)
-//                fragmentReviewBinding.reviewEditText.text.append(" ")
-//            }
-//        }
     }
 
-    fun getInterestModelResult(input: String):FloatBuffer{
-        var modifiedInput = input
-
-        var komoran = Komoran(DEFAULT_MODEL.FULL)
-        var komoranResult = komoran.analyze(input)
-        var tokenList = komoranResult.tokenList
-        modifiedInput = ""
-
-        for(token in tokenList){
-            modifiedInput += token.morph + " "
-        }
-
-        var tfModel = TfliteModelUtil.loadInterestModel(requireActivity())
-        var inputArray = Array(1){modifiedInput+" "}
-        var output: ByteBuffer = ByteBuffer.allocate(4*4).order(ByteOrder.nativeOrder())
-        tfModel.run(inputArray, output)
-
-        // bytebuffer float 변환
-        output.rewind()
-        var pro = output.asFloatBuffer()
-        return pro
+    fun loadReview(year:String, month:String, day:String, detail:String):String{
+        return sharedPref.getString("review-"+year+month+day+detail ,"").toString()
     }
 
-    fun getSentenceModelResult(input:String, toMorph:Boolean): Float{
-        var modifiedInput = input
-        if(toMorph == true){
-            var komoran = Komoran(DEFAULT_MODEL.FULL)
-            var komoranResult = komoran.analyze(input)
-            var tokenList = komoranResult.tokenList
-            modifiedInput = ""
-
-            for(token in tokenList){
-                modifiedInput += token.morph + " "
-            }
-            Log.d("modifiedInput", modifiedInput)
-        }
-
-        var tfModel = TfliteModelUtil.loadSentenceModel(requireActivity())
-        var inputArray = Array(1){modifiedInput+" "}
-        var output: ByteBuffer = ByteBuffer.allocate(2*4).order(ByteOrder.nativeOrder())
-        tfModel.run(inputArray, output)
-
-        // bytebuffer float 변환
-        output.rewind()
-        var pro = output.asFloatBuffer()
-        Log.d("AITEST", pro.get(0).toString() + " "+ pro.get(1).toString())
-        return pro.get(1)
-    }
-
-    fun loadReview(year:String, month:String, day:String):String{
-        return sharedPref.getString("review-"+year+month+day ,"").toString()
-    }
-
-    fun saveReview(year:String, month:String, day:String, review:String){
-        sharedPrefEditor.putString("review-"+year+month+day, review) // 시간별로 따로 저장
+    fun saveReview(year:String, month:String, day:String, detail:String, review:String){
+        sharedPrefEditor.putString("review-"+year+month+day+detail, review) // 시간별로 따로 저장
         sharedPrefEditor.commit()
     }
 

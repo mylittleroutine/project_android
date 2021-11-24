@@ -13,7 +13,11 @@ import com.example.realtodoapp.R
 import com.example.realtodoapp.service.CertService
 import com.example.realtodoapp.util.AppUtil
 import com.example.realtodoapp.connect.RetrofitInterface
+import com.example.realtodoapp.model.MemberInfoDto
+import com.example.realtodoapp.model.TodoPackageDto
+import com.google.gson.Gson
 import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -22,6 +26,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.*
 
 class MainActivity : AppCompatActivity(){
+    inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
+    var gson: Gson = Gson()
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +86,9 @@ class MainActivity : AppCompatActivity(){
 //            }
 //            override fun onResponse(call: Call<JsonElement>, response: Response<JsonElement>) {
 //                Log.d("getAllFeeds : ", response.body().toString())
+//                var list = mutableListOf<MemberInfoDto>()
+//                list = gson.fromJson(response.body().toString())
+//                Log.d("getAllFeedsElement : ", list[0].mem_id)
 //            }
 //        })
 
