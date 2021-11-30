@@ -17,6 +17,9 @@
         <action
             android:id="@+id/action_mainFragment_to_communityFragment"
             app:destination="@id/communityFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_addTodoFragment"
+            app:destination="@id/addTodoFragment" />
     </fragment>
     <fragment
         android:id="@+id/myRoomFragment"
@@ -38,4 +41,8 @@
             android:id="@+id/action_loginFragment_to_mainFragment"
             app:destination="@id/mainFragment" />
     </fragment>
+    <fragment
+        android:id="@+id/addTodoFragment"
+        android:name="com.example.realtodoapp.ui.addTodoFragment"
+        android:label="addTodoFragment" />
 </navigation>

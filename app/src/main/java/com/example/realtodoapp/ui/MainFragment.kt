@@ -14,11 +14,12 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -52,7 +53,6 @@ class MainFragment : Fragment(){
     lateinit var fragmentMainBinding: FragmentMainBinding
     lateinit var itemTodoPackageBinding: ItemTodoPackageBinding
     lateinit var  dialogDefaultBinding: DialogDefaultBinding
-    lateinit var dialogAddTodoBinding: DialogAddTodoBinding
     lateinit var dialogGraphBinding: DialogGraphBinding
     lateinit var dialogMapBinding: DialogMapBinding
     lateinit var dialogAppListBinding: DialogAppListBinding
@@ -67,8 +67,7 @@ class MainFragment : Fragment(){
     var curMonth = 0
     var curDay = 0
 
-    var saveLatitude = 0.0
-    var saveLongitude = 0.0
+    var backKeyPressedTime = 0.toLong()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +88,6 @@ class MainFragment : Fragment(){
         fragmentMainBinding = FragmentMainBinding.inflate(layoutInflater)
         itemTodoPackageBinding = ItemTodoPackageBinding.inflate(layoutInflater)
         dialogDefaultBinding = DialogDefaultBinding.inflate(layoutInflater)
-        dialogAddTodoBinding = DialogAddTodoBinding.inflate(layoutInflater)
         dialogGraphBinding = DialogGraphBinding.inflate(layoutInflater)
         dialogMapBinding = DialogMapBinding.inflate(layoutInflater)
         dialogAppListBinding = DialogAppListBinding.inflate(layoutInflater)
@@ -115,6 +113,36 @@ class MainFragment : Fragment(){
         var dateInfoRecyclerView = fragmentMainBinding.dateInfoRecyclerview
         var dateInfoRecyclerViewAdapter = setDateInfoRecyclerView(dateInfoRecyclerView)
 
+        // 뒤로가기 시 mainFragment면 앱 종료
+        requireActivity().onBackPressedDispatcher.addCallback {
+            findNavController().currentDestination?.label?.let {
+                if(it == "MainFragment"){
+                    if (System.currentTimeMillis() > backKeyPressedTime + 2000) {
+                        backKeyPressedTime = System.currentTimeMillis()
+                        Toast.makeText(requireContext(), "한번 더 누를 시 종료합니다", Toast.LENGTH_LONG).show()
+                    }else if (System.currentTimeMillis() <= backKeyPressedTime + 2000) {
+                        requireActivity().finish()
+                    }
+                    return@addCallback
+                }
+                else{
+                    findNavController().popBackStack()
+                }
+            }
+        }
+
+        // 로그아웃
+        fragmentMainBinding.logoutButton.setOnClickListener(){
+            // 기기에 빈 로그인 정보 저장
+            var emptyMember = MemberInfoDto()
+            var loginMemberInfoJson = gson.toJson(emptyMember)
+            sharedPrefEditor.putString("loginMemberInfo", loginMemberInfoJson)
+            sharedPrefEditor.commit()
+
+            // 로그인 화면으로 돌아가기
+            findNavController().popBackStack()
+        }
+
         fragmentMainBinding.writeReviewButton.setOnClickListener(){
             // fragment에 선택된 날짜 넘겨줌
             val bundle = bundleOf("curYear" to curYear.toString(), "curMonth" to curMonth.toString(), "curDay" to curDay.toString())
@@ -126,234 +154,11 @@ class MainFragment : Fragment(){
         }
 
         fragmentMainBinding.addTodoButton.setOnClickListener(){
-            var todoList = mutableListOf<TodoPackageDto>()
-            var emptyTodoListJson = gson.toJson(todoList)
 
-            var todoListJson = sharedPref.getString("myTodoList",emptyTodoListJson).toString()
-            todoList = gson.fromJson(todoListJson) // 기기에 있는 todoList 가져옴
+            // todoRoutine 생성 fragment로 이동
+            findNavController().navigate(R.id.action_mainFragment_to_addTodoFragment)
 
-            // todolist 생성 dialog 띄움
-            val dialog = Dialog(requireContext())
-            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-            if(dialogAddTodoBinding.root.parent != null){
-                (dialogAddTodoBinding.root.parent as ViewGroup).removeView(
-                    dialogAddTodoBinding.root
-                ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
-                dialog.dismiss()
-            }
-            dialog.setContentView(dialogAddTodoBinding.root)
-            var params: WindowManager.LayoutParams = dialog.getWindow()!!.getAttributes()
-            params.width = (requireContext().getResources()
-                .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
-            params.height = (requireContext().getResources()
-                .getDisplayMetrics().heightPixels * 0.5).toInt() // device의 세로 길이에 비례하여  결정
-            dialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            dialog.getWindow()!!.setAttributes(params)
-            dialog.getWindow()!!.setGravity(Gravity.CENTER)
-            dialog.setCancelable(true)
-            dialog.show()
-
-            // 현재 시간으로 default editText 설정
-            val current = LocalDateTime.now()
-            val yearFormatter = DateTimeFormatter.ofPattern("yyyy")
-            val monthFormatter = DateTimeFormatter.ofPattern("MM")
-            val dayFormatter = DateTimeFormatter.ofPattern("dd")
-            val hourFormatter = DateTimeFormatter.ofPattern("HH")
-            val minuteFormatter = DateTimeFormatter.ofPattern("mm")
-            dialogAddTodoBinding.todoYearEditText.setText(current.format(yearFormatter))
-            dialogAddTodoBinding.todoMonthEditText.setText(current.format(monthFormatter))
-            dialogAddTodoBinding.todoDayEditText.setText(current.format(dayFormatter))
-            dialogAddTodoBinding.todoHourEditText.setText(current.format(hourFormatter))
-            dialogAddTodoBinding.todoMinuteEditText.setText(current.format(minuteFormatter))
-
-            // 예외 앱 선택 기능 띄우기
-            dialogAddTodoBinding.selectAppButton.setOnClickListener(){
-                // dialog 띄움
-                val appListDialog = Dialog(requireContext())
-                appListDialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-                if(dialogAppListBinding.root.parent != null){
-                    (dialogAppListBinding.root.parent as ViewGroup).removeView(
-                        dialogAppListBinding.root
-                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
-                    appListDialog.dismiss()
-                }
-                appListDialog.setContentView(dialogAppListBinding.root)
-                var params: WindowManager.LayoutParams = appListDialog.getWindow()!!.getAttributes()
-                params.width = (requireContext().getResources()
-                    .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
-                params.height = (requireContext().getResources()
-                    .getDisplayMetrics().heightPixels * 0.7).toInt() // device의 세로 길이에 비례하여  결정
-                appListDialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-                appListDialog.getWindow()!!.setAttributes(params)
-                appListDialog.getWindow()!!.setGravity(Gravity.CENTER)
-                appListDialog.setCancelable(true)
-                appListDialog.show()
-
-                var appInfoListRecyclerview = dialogAppListBinding.appListRecyclerview
-                var appInfoListRecyclerviewAdapter = setAppInfoListRecyclerview(appInfoListRecyclerview)
-
-                dialogAppListBinding.okButton.setOnClickListener() {
-                    if (dialogAppListBinding.root.parent != null) {
-                        (dialogAppListBinding.root.parent as ViewGroup).removeView(
-                            dialogAppListBinding.root
-                        ) // 남아 있는 view 삭제
-                        appListDialog.dismiss()
-                    }
-                }
-            }
-
-            // 지도에서 목표 위치 선택 기능 띄우기
-            dialogAddTodoBinding.selectLocateButton.setOnClickListener(){
-                // dialog 띄움
-                val mapDialog = Dialog(requireContext())
-                mapDialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-                if(dialogMapBinding.root.parent != null){
-                    (dialogMapBinding.root.parent as ViewGroup).removeView(
-                        dialogMapBinding.root
-                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
-                    mapDialog.dismiss()
-                }
-                mapDialog.setContentView(dialogMapBinding.root)
-                var params: WindowManager.LayoutParams = mapDialog.getWindow()!!.getAttributes()
-                params.width = (requireContext().getResources()
-                    .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
-                params.height = (requireContext().getResources()
-                    .getDisplayMetrics().heightPixels * 0.7).toInt() // device의 세로 길이에 비례하여  결정
-                mapDialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-                mapDialog.getWindow()!!.setAttributes(params)
-                mapDialog.getWindow()!!.setGravity(Gravity.CENTER)
-                mapDialog.setCancelable(true)
-                mapDialog.show()
-
-                dialogMapBinding.textView.setText("목표 위치 설정")
-
-                // 목표 위치를 지도에서 설정
-                MapsInitializer.initialize(requireContext())
-                dialogMapBinding.mapInDialog.onCreate(dialog.onSaveInstanceState())
-                dialogMapBinding.mapInDialog.onResume()
-
-                dialogMapBinding.mapInDialog.getMapAsync(OnMapReadyCallback {
-                    if(saveLatitude == 0.0 && saveLongitude == 0.0){
-                        it.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(37.4921, 126.9730), 8F))
-                    }
-                    else{
-                        it.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(saveLatitude, saveLongitude), 16F))
-                    }
-
-                    it.setOnMapClickListener (object: GoogleMap.OnMapClickListener {
-                        override fun onMapClick(latLng: LatLng) {
-                            it.clear()
-
-                            it.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16F))
-
-                            val location = LatLng(latLng.latitude,latLng.longitude)
-                            it.addMarker(MarkerOptions().position(location))
-
-                            // 현재 찍은 위치를 전역변수로 저장해둠
-                            saveLatitude = latLng.latitude
-                            saveLongitude = latLng.longitude
-                        }
-
-                    })
-                })
-                dialogMapBinding.okButton.setOnClickListener(){
-                    if(dialogMapBinding.root.parent != null){
-                        (dialogMapBinding.root.parent as ViewGroup).removeView(
-                            dialogMapBinding.root
-                        ) // 남아 있는 view 삭제
-                        mapDialog.dismiss()
-                    }
-                }
-            }
-
-            //  체크 항목 변경
-            dialogAddTodoBinding.autoScreenCheckBox.setOnCheckedChangeListener{ _, isChecked ->
-                if(isChecked){
-                    dialogAddTodoBinding.autoLocateCheckBox.setChecked(false)
-                }
-            }
-            dialogAddTodoBinding.autoLocateCheckBox.setOnCheckedChangeListener{ _, isChecked ->
-                if(isChecked){
-                    dialogAddTodoBinding.autoScreenCheckBox.setChecked(false)
-                }
-            }
-
-
-            dialogAddTodoBinding.okButton.setOnClickListener(){
-                var newTodo = TodoPackageDto()
-                var year = dialogAddTodoBinding.todoYearEditText.getText().toString()
-                var month = dialogAddTodoBinding.todoMonthEditText.getText().toString()
-                var day = dialogAddTodoBinding.todoDayEditText.getText().toString()
-                var hour = dialogAddTodoBinding.todoHourEditText.getText().toString()
-                var minute = dialogAddTodoBinding.todoMinuteEditText.getText().toString()
-
-                // 종료 시간 있을 때 설정
-                var endHour = dialogAddTodoBinding.todoEndHourEditText.getText().toString()
-                var endMinute = dialogAddTodoBinding.todoEndMinuteEditText.getText().toString()
-
-                newTodo.year = Integer.parseInt(year)
-                newTodo.month = Integer.parseInt(month)
-                newTodo.day = Integer.parseInt(day)
-
-                if(dialogAddTodoBinding.autoScreenCheckBox.isChecked){
-                    newTodo.certType = "SCREEN_AUTO"
-                }
-                else if(dialogAddTodoBinding.autoLocateCheckBox.isChecked){
-                    newTodo.certType = "LOCATE_AUTO"
-                }
-
-
-                if(dialogAddTodoBinding.disableTimeCheckBox.isChecked){
-                    newTodo.name = dialogAddTodoBinding.todoNameEditText.getText().toString()
-                    newTodo.time = "TODAY"
-                    todoList.add(newTodo)
-                }
-                else{
-                    newTodo.name = dialogAddTodoBinding.todoNameEditText.getText().toString()
-                    if(hour != "") newTodo.hour = Integer.parseInt(hour)
-                    if(minute != "") newTodo.minute = Integer.parseInt(minute)
-                    if(endHour != "") newTodo.endHour = Integer.parseInt(endHour)
-                    if(endMinute != "") newTodo.endMinute = Integer.parseInt(endMinute)
-
-                    newTodo.time = String.format("%02d",newTodo.hour) +":" + String.format("%02d",newTodo.minute)
-                    todoList.add(newTodo)
-                    
-                    // 목표 위치 저장
-                    if(newTodo.certType == "LOCATE_AUTO"){
-                        // todo마다 다른 목표 위치를 저장할 필요가 있으므로 각기 다른 곳에 저장
-                        var sharedPrefKeyGoal = "goalLocateRecord"+
-                                newTodo.year+newTodo.month+newTodo.day+newTodo.hour.toString()+newTodo.minute.toString()
-                        var goalLocateRecord = mutableListOf<Double>()
-
-                        // 전역변수로 저장해둔 위치 불러오기
-                        goalLocateRecord.add(saveLatitude)
-                        goalLocateRecord.add(saveLongitude)
-
-                        var goalLocateRecordJson = gson.toJson(goalLocateRecord)
-
-                        sharedPrefEditor.putString(sharedPrefKeyGoal, goalLocateRecordJson) // 시간별로 따로 저장
-                        sharedPrefEditor.commit()
-                    }
-                } // 시간 설정 여부에 따라 다른 방식으로 dto 추가
-
-                todoListJson = gson.toJson(todoList)
-
-                sharedPrefEditor.putString("myTodoList", todoListJson)
-                sharedPrefEditor.commit()
-
-                refreshTodoList()
-
-                if(dialogAddTodoBinding.root.parent != null) {
-                    dialog.dismiss()
-                    (dialogAddTodoBinding.root.parent as ViewGroup).removeView(
-                        dialogAddTodoBinding.root
-                    ) // 다음에 쓰기 위해 view 삭제
-                }
-            }
-
-//            var sample1 = TodoPackageDto()
-//            sample1.name = "TODAY"
-//            todoList.add(sample1)
+            // 다른 fragment 다녀올 시 onCreateView가 재실행되어 todo목록이 업데이트됨
 
         }
 
@@ -589,18 +394,6 @@ class MainFragment : Fragment(){
             }
         }
 
-    }
-
-    fun setAppInfoListRecyclerview(recyclerView: RecyclerView): AdapterAppInfoList{
-        val installedApps = AppUtil.getInstalledApp(requireContext())
-
-        recyclerView.adapter = AdapterAppInfoList(requireContext(), installedApps)
-        val adapter = recyclerView.adapter as AdapterAppInfoList
-        val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
-        recyclerView.layoutManager = linearLayoutManager
-        recyclerView.setHasFixedSize(true)
-
-        return adapter
     }
 
 }

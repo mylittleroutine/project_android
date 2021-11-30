@@ -200,7 +200,7 @@ class CertService: Service(), SensorEventListener {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(R.drawable.meat)
+            .setSmallIcon(R.drawable.logo)
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
@@ -212,7 +212,7 @@ class CertService: Service(), SensorEventListener {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(R.drawable.meat)
+            .setSmallIcon(R.drawable.logo)
             .build()
         notificationManager.notify(2,notification)
     }

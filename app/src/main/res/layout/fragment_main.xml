@@ -12,8 +12,8 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/title"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:background="#EEEFFF"
+            android:layout_height="50dp"
+            android:background="#FFFFFF"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -32,12 +32,23 @@
 
             <ImageView
                 android:id="@+id/user_charactor"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.945"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <Button
+                android:id="@+id/logout_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="로그아웃"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/user_charactor"
+                app:layout_constraintHorizontal_bias="0.862"
+                app:layout_constraintStart_toEndOf="@+id/user_name"
                 app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -46,6 +57,7 @@
             android:layout_width="match_parent"
             android:layout_height="80dp"
             android:layout_marginTop="20dp"
+            android:layout_marginHorizontal="5dp"
             android:padding = "10dp"
             android:background="#555555"
             app:layout_constraintEnd_toEndOf="parent"
@@ -85,6 +97,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:clickable="true"
+            app:backgroundTint="#FFFEFE"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.523"
@@ -98,6 +111,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:clickable="true"
+            app:backgroundTint="#FFFEFE"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.754"
@@ -111,6 +125,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:clickable="true"
+            app:backgroundTint="#FFFEFE"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.994"
@@ -123,12 +138,13 @@
             android:id="@+id/delete_all_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="test-모두제거"
+            android:text="모두제거"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/add_todo_button"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/todo_by_time_recyclerView"
             app:layout_constraintVertical_bias="0.877" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

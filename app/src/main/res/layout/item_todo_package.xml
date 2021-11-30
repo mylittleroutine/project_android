@@ -6,7 +6,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/background_constraintLayout"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="60dp"
         android:background="#FFFFFF">
 
         <LinearLayout
@@ -14,7 +14,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="10dp"
-            android:background="#FFFEEE"
+            android:background= "@drawable/round_translucent_layout"
+            android:backgroundTint="#EEEEEE"
             android:orientation="horizontal"
             android:weightSum="10"
             android:paddingLeft="20dp"

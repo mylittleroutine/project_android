@@ -83,7 +83,7 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
         bind.todoNameTextView.setText(item.name)
         bind.todoTimeTextView.setText(item.time)
         if(item.time == "TODAY"){
-            bind.backgroundTodo.setBackgroundColor(Color.parseColor("#DDDDDD"))
+            //bind.backgroundTodo.setBackgroundColor(Color.parseColor("#DDDDDD"))
         }
         if(item.success == true){
             bind.sucessOrFailImageView.setImageResource(R.drawable.success_check)
@@ -154,6 +154,10 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
                 dialog.show()
 
                 setChartData(interActiveScreenRecord)
+
+                if(item.success == true){
+                    dialogGraphBinding.graphResultTextView.setText("인증에 성공하였습니다!")
+                }
             }
 
             if(item.certType == "LOCATE_AUTO"){
@@ -181,7 +185,12 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
                 dialog.setCancelable(true)
                 dialog.show()
 
-                dialogMapBinding.textView.setText("목표 위치 도달 시 성공")
+                if(item.success == false){
+                    dialogMapBinding.textView.setText("목표 위치 도달 시 성공")
+                }
+                else{
+                    dialogMapBinding.textView.setText("인증 성공하였습니다!")
+                }
 
                 // google map 설정
 
@@ -260,7 +269,7 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
         dialogGraphBinding.linechart.invalidate()
 
         var offRatio = ((offCount.toFloat() / count.toFloat()) *100).toInt()
-        dialogGraphBinding.graphResultTextView.setText("화면 꺼짐 비율: "+ offRatio +"%")
+        dialogGraphBinding.graphResultTextView.setText("금지 앱 미사용 비율: "+ offRatio +"%")
 
     }
 
