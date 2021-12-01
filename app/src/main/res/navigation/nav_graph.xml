@@ -43,6 +43,14 @@
     </fragment>
     <fragment
         android:id="@+id/addTodoFragment"
-        android:name="com.example.realtodoapp.ui.addTodoFragment"
-        android:label="addTodoFragment" />
+        android:name="com.example.realtodoapp.ui.AddTodoFragment"
+        android:label="addTodoFragment" >
+        <action
+            android:id="@+id/action_addTodoFragment_to_appRoutineFragment"
+            app:destination="@id/appRoutineFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/appRoutineFragment"
+        android:name="com.example.realtodoapp.ui.AppRoutineFragment"
+        android:label="AppRoutineFragment" />
 </navigation>

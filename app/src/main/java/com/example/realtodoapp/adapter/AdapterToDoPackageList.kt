@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.util.Log
 import android.view.*
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -128,8 +129,17 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
                 var interActiveScreenRecord = mutableListOf<Boolean>()
                 var emptyInterActiveScreenRecordJson = gson.toJson(interActiveScreenRecord)
 
-                var interActiveScreenRecordJson = sharedPref.getString("interActiveScreenRecord"+
-                    item.year.toString()+item.month.toString()+item.day.toString()+item.hour.toString()+item.minute.toString(),emptyInterActiveScreenRecordJson).toString()
+                val startHour = item.hour
+                val endHour = item.endHour
+                val startMinute = item.minute
+                val endMinute = item.endMinute
+
+                // item의 정보로 시작시간, 종료 시간 담은 timeInfo 생성
+                var startTimeString = item.year.toString()+"-"+String.format("%02d",item.month)+"-"+String.format("%02d",item.day)+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
+                var endTimeString = item.year.toString()+"-"+String.format("%02d",item.month)+"-"+String.format("%02d",item.day)+"-"+String.format("%02d",endHour)+"-"+String.format("%02d",endMinute) // 두자리수로 맞춰줌
+                var timeInfo = startTimeString + endTimeString
+
+                var interActiveScreenRecordJson = sharedPref.getString("interActiveScreenRecord"+timeInfo,emptyInterActiveScreenRecordJson).toString()
                 interActiveScreenRecord = gson.fromJson(interActiveScreenRecordJson)
 
                 // dialog로 상태 출력
@@ -153,6 +163,7 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
                 dialog.setCancelable(true)
                 dialog.show()
 
+                //dialogGraphBinding.graphResultTextView.setText("interActiveScreenRecord"+ timeInfo)
                 setChartData(interActiveScreenRecord)
 
                 if(item.success == true){

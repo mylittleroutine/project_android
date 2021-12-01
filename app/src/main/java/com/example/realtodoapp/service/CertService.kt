@@ -24,6 +24,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.realtodoapp.R
+import com.example.realtodoapp.model.AppRoutineForTimeDto
 import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.ui.MainActivity
 import com.example.realtodoapp.ui.MainFragment
@@ -151,6 +152,8 @@ class CertService: Service(), SensorEventListener {
                         Comparator<TodoPackageDto> { a, b -> a.hour * 60 + a.minute - b.hour * 60 - b.minute } // 시간순 정렬
                     Collections.sort(filteredTodoList, comparator)
 
+                    appRoutineService(getYear, getMonth, getDay)
+
 
                     // 현재 인증되어야 하는 todo에 따라 인증 실행
                     for (todo in filteredTodoList) {  // 오늘 날짜의 todo에 한해서 체크
@@ -194,6 +197,27 @@ class CertService: Service(), SensorEventListener {
         }
 
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun appRoutineService(getYear:String, getMonth:String, getDay:String){
+        // 오늘 날짜의 appRoutine목록 불러옴
+        var appRoutineList = mutableListOf<AppRoutineForTimeDto>()
+        var emptyAppRoutineListJson = gson.toJson(appRoutineList)
+
+        var appRoutineListJson =
+            sharedPref.getString("appRoutineList"+getYear+getMonth+getDay, emptyAppRoutineListJson).toString()
+        appRoutineList = gson.fromJson(appRoutineListJson)
+
+        for(routine in appRoutineList){
+            var startHour = routine.startHour
+            var startMinute = routine.startMinute
+            var endHour = routine.endHour
+            var endMinute = routine.endMinute
+
+            var offRatio = recordActionScreen(startHour, startMinute, endHour, endMinute)
+        }
+
     }
 
     fun setForeGround(title:String, text: String){ // foreground 알림 표시 기능 (항상 켜져있어야 작동)
@@ -263,9 +287,11 @@ class CertService: Service(), SensorEventListener {
         val getHour: String = simpleHour.format(date)
         val getMinute: String = simpleMinute.format(date)
 
+        var startTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
+        var endTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",endHour)+"-"+String.format("%02d",endMinute) // 두자리수로 맞춰줌
+        var currentTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+getHour+"-"+getMinute
 
-        var sharedPrefKey = "interActiveScreenRecord"+
-                            getYear+getMonth+getDay+startHour.toString()+startMinute.toString()
+        var sharedPrefKey = "interActiveScreenRecord"+ startTimeString+endTimeString
 
         // 이전 정보 가져옴
         var interActiveScreenRecord = mutableListOf<Boolean>()
@@ -273,10 +299,6 @@ class CertService: Service(), SensorEventListener {
 
         var interActiveScreenRecordJson = sharedPref.getString(sharedPrefKey,emptyInterActiveScreenRecord).toString()
         interActiveScreenRecord = gson.fromJson(interActiveScreenRecordJson)
-
-        var startTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
-        var endTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+String.format("%02d",endHour)+"-"+String.format("%02d",endMinute) // 두자리수로 맞춰줌
-        var currentTimeString = getYear+"-"+getMonth+"-"+getDay+"-"+getHour+"-"+getMinute
 
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
 
@@ -290,7 +312,7 @@ class CertService: Service(), SensorEventListener {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             if (pm.isInteractive) {
                 // 금지된 앱을 화면에 띄울 때만 인식
-                var notUseAppList = AppUtil.loadNotUseAppList(applicationContext)
+                var notUseAppList = AppUtil.loadNotUseAppList(applicationContext, startTimeString+endTimeString)
                 var currentApp = AppUtil.getCurrentApp(applicationContext)
                 var isfail = false
                 Log.d("notUseAppList", notUseAppList.toString())
@@ -313,6 +335,8 @@ class CertService: Service(), SensorEventListener {
             } else {
                 interActiveScreenRecord.add(false)
             }
+
+            Log.d("레코드:", sharedPrefKey)
 
             var interActiveScreenRecordJson = gson.toJson(interActiveScreenRecord)
 

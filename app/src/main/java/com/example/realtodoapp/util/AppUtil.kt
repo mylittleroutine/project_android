@@ -96,39 +96,39 @@ class AppUtil {
         }
 
         // 사용 금지한 앱 불러오기
-        fun loadNotUseAppList(context: Context): MutableList<ApplicationInfo>{
+        fun loadNotUseAppList(context: Context, timeInfo:String): MutableList<ApplicationInfo>{
             sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
 
             var notUseAppList = mutableListOf<ApplicationInfo>()
             var emptyNotUseAppListJson = gson.toJson(notUseAppList)
 
-            var notUseAppListJson = sharedPref.getString("notUseAppList",emptyNotUseAppListJson).toString()
+            var notUseAppListJson = sharedPref.getString("notUseAppList"+timeInfo,emptyNotUseAppListJson).toString()
             notUseAppList = gson.fromJson(notUseAppListJson)
             return notUseAppList
         }
 
         // 사용 금지 앱 추가
-        fun addNotUseApp(context: Context, applicationInfo: ApplicationInfo){
+        fun addNotUseApp(context: Context, applicationInfo: ApplicationInfo, timeInfo: String){
             sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
             sharedPrefEditor = sharedPref.edit()
 
-            var notUseAppList = loadNotUseAppList(context)
+            var notUseAppList = loadNotUseAppList(context, timeInfo)
             if(!isNotUseApp(applicationInfo, notUseAppList)){
                 notUseAppList.add(applicationInfo)
             }
 
             var notUseAppListJson = gson.toJson(notUseAppList)
 
-            sharedPrefEditor.putString("notUseAppList", notUseAppListJson)
+            sharedPrefEditor.putString("notUseAppList"+timeInfo, notUseAppListJson)
             sharedPrefEditor.commit()
         }
 
         // 사용 금지 앱 목록에서 제거
-        fun deleteNotUseApp(context: Context, applicationInfo: ApplicationInfo){
+        fun deleteNotUseApp(context: Context, applicationInfo: ApplicationInfo, timeInfo: String){
             sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
             sharedPrefEditor = sharedPref.edit()
 
-            var notUseAppList = loadNotUseAppList(context)
+            var notUseAppList = loadNotUseAppList(context, timeInfo)
             if(isNotUseApp(applicationInfo, notUseAppList)){
                 // 같은 앱이라도 package name 제외 다를 수 있기 때문에 package name으로 구분하여 제거
                 //  remove 오류 방지 위해 for 문 쓰지 않고 iter 사용
@@ -143,7 +143,7 @@ class AppUtil {
 
             var notUseAppListJson = gson.toJson(notUseAppList)
 
-            sharedPrefEditor.putString("notUseAppList", notUseAppListJson)
+            sharedPrefEditor.putString("notUseAppList"+timeInfo, notUseAppListJson)
             sharedPrefEditor.commit()
         }
 

@@ -4,15 +4,18 @@ import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.*
 import androidx.annotation.RequiresApi
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.example.realtodoapp.R
 import com.example.realtodoapp.adapter.AdapterAppInfoList
 import com.example.realtodoapp.adapter.AdapterFeedList
 import com.example.realtodoapp.databinding.*
@@ -33,7 +36,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.streams.toList
 
-class addTodoFragment : Fragment(){
+class AddTodoFragment : Fragment(){
     lateinit var fragmentAddTodoBinding: FragmentAddTodoBinding
     lateinit var dialogAppListBinding:DialogAppListBinding
     lateinit var dialogMapBinding: DialogMapBinding
@@ -112,16 +115,24 @@ class addTodoFragment : Fragment(){
         fragmentAddTodoBinding.notAutoButton.setOnClickListener(){
             setNotAutoDialog()
         }
+        fragmentAddTodoBinding.appRoutineAutoButton.setOnClickListener(){
+            var year = fragmentAddTodoBinding.todoYearEditText.getText().toString()
+            var month = fragmentAddTodoBinding.todoMonthEditText.getText().toString()
+            var day = fragmentAddTodoBinding.todoDayEditText.getText().toString()
+
+            val bundle = bundleOf("year" to year, "month" to month, "day" to day)
+            findNavController().navigate(R.id.action_addTodoFragment_to_appRoutineFragment, bundle)
+        }
 
 
         val view = fragmentAddTodoBinding.root
         return view
     }
 
-    fun setAppInfoListRecyclerview(recyclerView: RecyclerView): AdapterAppInfoList {
+    fun setAppInfoListRecyclerview(recyclerView: RecyclerView, timeInfo:String): AdapterAppInfoList {
         val installedApps = AppUtil.getInstalledApp(requireContext())
 
-        recyclerView.adapter = AdapterAppInfoList(requireContext(), installedApps)
+        recyclerView.adapter = AdapterAppInfoList(requireContext(), installedApps, timeInfo)
         val adapter = recyclerView.adapter as AdapterAppInfoList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager
@@ -385,8 +396,26 @@ class addTodoFragment : Fragment(){
             appListDialog.setCancelable(true)
             appListDialog.show()
 
+            var year = fragmentAddTodoBinding.todoYearEditText.getText().toString().toInt()
+            var month = fragmentAddTodoBinding.todoMonthEditText.getText().toString().toInt()
+            var day = fragmentAddTodoBinding.todoDayEditText.getText().toString().toInt()
+
+            // 시작 시간 설정
+            var startHour = dialogAddTodoAutoAppBinding.todoHourEditText.getText().toString().toInt()
+            var startMinute = dialogAddTodoAutoAppBinding.todoMinuteEditText.getText().toString().toInt()
+
+            // 종료 시간 설정
+            var endHour = dialogAddTodoAutoAppBinding.todoEndHourEditText.getText().toString().toInt()
+            var endMinute = dialogAddTodoAutoAppBinding.todoEndMinuteEditText.getText().toString().toInt()
+
+            // 시작시간, 종료 시간 담은 timeInfo 생성
+            var startTimeString = year.toString()+"-"+String.format("%02d",month)+"-"+String.format("%02d",day)+"-"+String.format("%02d",startHour)+"-"+String.format("%02d",startMinute)
+            var endTimeString = year.toString()+"-"+String.format("%02d",month)+"-"+String.format("%02d",day)+"-"+String.format("%02d",endHour)+"-"+String.format("%02d",endMinute) // 두자리수로 맞춰줌
+            var timeInfo = startTimeString + endTimeString
+
+
             var appInfoListRecyclerview = dialogAppListBinding.appListRecyclerview
-            var appInfoListRecyclerviewAdapter = setAppInfoListRecyclerview(appInfoListRecyclerview)
+            var appInfoListRecyclerviewAdapter = setAppInfoListRecyclerview(appInfoListRecyclerview, timeInfo)
 
             dialogAppListBinding.okButton.setOnClickListener() {
                 if (dialogAppListBinding.root.parent != null) {
