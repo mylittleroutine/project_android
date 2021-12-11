@@ -68,6 +68,8 @@ class AppRoutineFragment: Fragment() {
             sharedPref.getString("appRoutineList"+year+month+day, emptyAppRoutineListJson).toString()
         appRoutineList = gson.fromJson(appRoutineListJson)
 
+        appRoutineList.sortBy { it.startHour }
+
         var appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
 
         // 메인 화면에 todo로 추가
@@ -100,6 +102,8 @@ class AppRoutineFragment: Fragment() {
             findNavController().popBackStack()
         }
 
+
+        // 앱 루틴 추가
         fragmentAppRoutineBinding.addRoutineButton.setOnClickListener(){
             val dialog = Dialog(requireContext())
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -140,6 +144,8 @@ class AppRoutineFragment: Fragment() {
                 var appRoutineListJson =
                     sharedPref.getString("appRoutineList"+year+month+day, emptyAppRoutineListJson).toString()
                 appRoutineList = gson.fromJson(appRoutineListJson)
+
+                appRoutineList.sortBy { it.startHour }
 
                 appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
 
