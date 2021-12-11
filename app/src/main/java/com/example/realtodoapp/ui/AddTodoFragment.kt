@@ -119,8 +119,9 @@ class AddTodoFragment : Fragment(){
             var year = fragmentAddTodoBinding.todoYearEditText.getText().toString()
             var month = fragmentAddTodoBinding.todoMonthEditText.getText().toString()
             var day = fragmentAddTodoBinding.todoDayEditText.getText().toString()
+            var name = fragmentAddTodoBinding.todoNameEditText.getText().toString()
 
-            val bundle = bundleOf("year" to year, "month" to month, "day" to day)
+            val bundle = bundleOf("year" to year, "month" to month, "day" to day, "name" to name)
             findNavController().navigate(R.id.action_addTodoFragment_to_appRoutineFragment, bundle)
         }
 

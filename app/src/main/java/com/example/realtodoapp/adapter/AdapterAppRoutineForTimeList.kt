@@ -16,15 +16,17 @@ import com.example.realtodoapp.model.AppRoutineForTimeDto
 import com.example.realtodoapp.model.DateInfoDto
 import com.example.realtodoapp.util.AppUtil
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.animation.Easing
+import com.github.mikephil.charting.data.*
+import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.time.Year
 import java.util.ArrayList
 
-class AdapterAppRoutineForTimeList(val context: Context, var list: List<AppRoutineForTimeDto>, var dialogAppListBinding: DialogAppListBinding, var dialogGraphBinding: DialogGraphBinding) : RecyclerView.Adapter<AppRoutineForTimeHolder>(){
+class AdapterAppRoutineForTimeList(val context: Context, var list: List<AppRoutineForTimeDto>,
+                                   var dialogAppListBinding: DialogAppListBinding, var dialogGraphBinding: DialogGraphBinding,
+                                   var dialogAppUsePiechartBinding: DialogAppUsePiechartBinding) : RecyclerView.Adapter<AppRoutineForTimeHolder>(){
 
     var items = list
         @SuppressLint("NotifyDataSetChanged")
@@ -35,7 +37,7 @@ class AdapterAppRoutineForTimeList(val context: Context, var list: List<AppRouti
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppRoutineForTimeHolder {
         var bind =ItemAppRoutineBinding.inflate(LayoutInflater.from(context), parent, false)
-        return AppRoutineForTimeHolder(context, bind, dialogAppListBinding, dialogGraphBinding)
+        return AppRoutineForTimeHolder(context, bind, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
     }
 
     override fun onBindViewHolder(holder: AppRoutineForTimeHolder, position: Int) {
@@ -48,7 +50,8 @@ class AdapterAppRoutineForTimeList(val context: Context, var list: List<AppRouti
     }
 }
 
-class AppRoutineForTimeHolder(val context: Context, var bind: ItemAppRoutineBinding, var dialogAppListBinding: DialogAppListBinding, var dialogGraphBinding: DialogGraphBinding):RecyclerView.ViewHolder(bind.root){
+class AppRoutineForTimeHolder(val context: Context, var bind: ItemAppRoutineBinding, var dialogAppListBinding: DialogAppListBinding,
+                              var dialogGraphBinding: DialogGraphBinding, var dialogAppUsePiechartBinding: DialogAppUsePiechartBinding):RecyclerView.ViewHolder(bind.root){
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
     lateinit var sharedPref: SharedPreferences
@@ -90,9 +93,128 @@ class AppRoutineForTimeHolder(val context: Context, var bind: ItemAppRoutineBind
         bind.startHourTextView.setText(String.format("%02d",startHour)+": " + String.format("%02d",startMinute))
         bind.endHourTextView.setText(String.format("%02d",endHour)+": "+ String.format("%02d",endMinute))
 
+        // sharedPreference 사용
+        sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
+        sharedPrefEditor = sharedPref.edit()
+
+        // 전체 앱 사용 시간 표시
+        var appUseTimeRecord = mutableListOf<Pair<String, Int>>() // 앱 패키지명, 실행 시간
+        var emptyAppUseTimeRecord = gson.toJson(appUseTimeRecord)
+
+        var appUseTimeRecordJson = sharedPref.getString("appUseTimeRecord"+timeInfo,emptyAppUseTimeRecord).toString()
+        appUseTimeRecord = gson.fromJson(appUseTimeRecordJson)
+
+        // 사용 시간 순 정렬
+        appUseTimeRecord.sortByDescending { it.second }
+
+        // 가장 사용 시간이 높은 4개 앱 표시
+        bind.realUseAppOne.setImageDrawable(null)
+        bind.realUseAppTwo.setImageDrawable(null)
+        bind.realUseAppThree.setImageDrawable(null)
+        bind.realUseAppFour.setImageDrawable(null)
+
+        var installedApps = AppUtil.getInstalledApp(context)
+        if(appUseTimeRecord.size> 0) {
+            for (app in installedApps) {
+                if (app.packageName == appUseTimeRecord[0].first) {
+                    bind.realUseAppOne.setImageDrawable(app.loadIcon(context.packageManager))
+                    break
+                }
+            }
+        }
+        if(appUseTimeRecord.size> 1) {
+            for (app in installedApps) {
+                if (app.packageName == appUseTimeRecord[1].first) {
+                    bind.realUseAppTwo.setImageDrawable(app.loadIcon(context.packageManager))
+                    break
+                }
+            }
+        }
+        if(appUseTimeRecord.size> 2) {
+            for (app in installedApps) {
+                if (app.packageName == appUseTimeRecord[2].first) {
+                    bind.realUseAppThree.setImageDrawable(app.loadIcon(context.packageManager))
+                    break
+                }
+            }
+        }
+        if(appUseTimeRecord.size> 3) {
+            for (app in installedApps) {
+                if (app.packageName == appUseTimeRecord[3].first) {
+                    bind.realUseAppFour.setImageDrawable(app.loadIcon(context.packageManager))
+                    break
+                }
+            }
+        }
+
+        // 앱 사용 비율 표시
+        bind.realUseAppConstraintLayout.setOnClickListener(){
+
+            // dialog로 상태 출력
+            val dialog = Dialog(context)
+            dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+            if (dialogAppUsePiechartBinding.root.parent != null) {
+                (dialogAppUsePiechartBinding.root.parent as ViewGroup).removeView(
+                    dialogAppUsePiechartBinding.root
+                ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
+                dialog.dismiss()
+            }
+            dialog.setContentView(dialogAppUsePiechartBinding.root)
+            var params: WindowManager.LayoutParams = dialog.getWindow()!!.getAttributes()
+            params.width = (context.getResources()
+                .getDisplayMetrics().widthPixels * 0.9).toInt() // device의 가로 길이 비례하여 결정
+            params.height = (context.getResources()
+                .getDisplayMetrics().heightPixels * 0.8).toInt() // device의 세로 길이에 비례하여  결정
+            dialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialog.getWindow()!!.setAttributes(params)
+            dialog.getWindow()!!.setGravity(Gravity.CENTER)
+            dialog.setCancelable(true)
+            dialog.show()
+
+            // pieChart 세팅
+            dialogAppUsePiechartBinding.appUsePieChart.setUsePercentValues(true)
+            val entries = ArrayList<PieEntry>()
+            for (i in 0 until appUseTimeRecord.size){
+                for (app in installedApps) {
+                    if (app.packageName == appUseTimeRecord[i].first) {
+                        entries.add(PieEntry(appUseTimeRecord[i].second.toFloat(),app.loadLabel(context.packageManager).toString() + " " + appUseTimeRecord[i].second /60 + "분"))
+                        break
+                    }
+                }
+            }
+
+            var colorsItems = ArrayList<Int>()
+            for (c in ColorTemplate.VORDIPLOM_COLORS) colorsItems.add(c)
+
+            var pieDataSet = PieDataSet(entries, "")
+            pieDataSet.apply{
+                colors = colorsItems
+                valueTextColor= Color.BLACK
+                valueTextSize = 15f
+            }
+
+            val pieData = PieData(pieDataSet)
+            dialogAppUsePiechartBinding.appUsePieChart.apply{
+                data = pieData
+                description.isEnabled = false
+                isRotationEnabled = false
+                setEntryLabelColor(Color.BLACK)
+                setEntryLabelTextSize(12f)
+                animateY(1400, Easing.EaseInOutQuad)
+                animate()
+            }
+
+            dialogAppUsePiechartBinding.okButton.setOnClickListener(){
+                if (dialogAppUsePiechartBinding.root.parent != null) {
+                    (dialogAppUsePiechartBinding.root.parent as ViewGroup).removeView(
+                        dialogAppUsePiechartBinding.root
+                    ) // 쓰기 위해 혹시라도 남아 있는 view 삭제
+                    dialog.dismiss()
+                }
+            }
+        }
+
         bind.timeBarConstraintLayout.setOnClickListener(){
-            sharedPref = context.getSharedPreferences("sharedPref1", Context.MODE_PRIVATE)
-            sharedPrefEditor = sharedPref.edit()
 
             var interActiveScreenRecord = mutableListOf<Boolean>()
             var emptyInterActiveScreenRecordJson = gson.toJson(interActiveScreenRecord)

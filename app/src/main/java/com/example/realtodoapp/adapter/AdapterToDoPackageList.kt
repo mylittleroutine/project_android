@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.util.Log
@@ -90,6 +91,21 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
             bind.sucessOrFailImageView.setImageResource(R.drawable.success_check)
         }
 
+        // 인증 형태에 따라 색 변경
+        if(item.certType == ""){
+            bind.backgroundTodo.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EBF6FB")))
+        }
+        else if (item.certType == "AppRoutine"){
+            bind.backgroundTodo.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#F6F2FD")))
+        }
+        else if (item.certType == "SCREEN_AUTO"){
+            bind.backgroundTodo.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#EBF4E0")))
+        }
+        else if (item.certType == "LOCATE_AUTO"){
+            bind.backgroundTodo.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#FAECEC")))
+        }
+
+
         bind.todoNameTextView.setOnClickListener(){
             //수동 인식 기능
             if (item.certType == "") {
@@ -118,6 +134,17 @@ class TodoPackageHolder(val activity: FragmentActivity, val fragment:Fragment, v
                 dialogDefaultBinding.certButton.setOnClickListener() {
                     manualCertOnClickListener.onClick(item)
                 }
+            }
+
+            // 앱 루틴 설정 현황 출력
+            if(item.certType == "AppRoutine"){
+                var year = item.year.toString()
+                var month = item.month.toString()
+                var day = item.day.toString()
+                var name = item.name.toString()
+
+                val bundle = bundleOf("year" to year, "month" to month, "day" to day, "name" to name)
+                findNavController(fragment).navigate(R.id.action_mainFragment_to_appRoutineFragment, bundle)
             }
 
             // 자동 인식 테스트 현황 출력

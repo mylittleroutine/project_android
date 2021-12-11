@@ -92,9 +92,6 @@ class MainFragment : Fragment(){
         dialogMapBinding = DialogMapBinding.inflate(layoutInflater)
         dialogAppListBinding = DialogAppListBinding.inflate(layoutInflater)
 
-        // 테스트 애니메이션 실행
-        testAnimation()
-
         // 저장된 id 정보 불러오기
         var loginMemberInfo = MemberInfoDto()
         var emptyLoginMemberInfo = gson.toJson(loginMemberInfo)
@@ -168,11 +165,6 @@ class MainFragment : Fragment(){
 
             refreshTodoList()
         }
-
-        fragmentMainBinding.userCharactor.setOnClickListener(){
-            findNavController().navigate(R.id.action_mainFragment_to_myRoomFragment)
-        }
-
 
         val view = fragmentMainBinding.root
         return view
@@ -373,27 +365,6 @@ class MainFragment : Fragment(){
         setTodoByDayRecyclerView(fragmentMainBinding.fragmentMainRecyclerView)
         setTodoByTimeRecyclerView(fragmentMainBinding.todoByTimeRecyclerView)
         setDateInfoRecyclerView(fragmentMainBinding.dateInfoRecyclerview)
-    }
-
-    fun testAnimation(){
-        val scope = GlobalScope // 비동기 함수 진행
-        scope.launch {
-            while (true) {
-                delay(100)
-                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
-                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_1)
-                }
-                delay(100)
-                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
-                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_2)
-                }
-                delay(100)
-                fragmentMainBinding.root.post { // ui는 메인 thread에서 변경해야만 하기 때문에 이 작업 필요
-                    fragmentMainBinding.userCharactor.setImageResource(R.drawable.test_charactor_3)
-                }
-            }
-        }
-
     }
 
 }

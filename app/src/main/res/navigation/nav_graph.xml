@@ -9,9 +9,6 @@
         android:name="com.example.realtodoapp.ui.MainFragment"
         android:label="MainFragment" >
         <action
-            android:id="@+id/action_mainFragment_to_myRoomFragment"
-            app:destination="@id/myRoomFragment" />
-        <action
             android:id="@+id/action_mainFragment_to_reviewFragment"
             app:destination="@id/reviewFragment" />
         <action
@@ -20,11 +17,10 @@
         <action
             android:id="@+id/action_mainFragment_to_addTodoFragment"
             app:destination="@id/addTodoFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_appRoutineFragment"
+            app:destination="@id/appRoutineFragment" />
     </fragment>
-    <fragment
-        android:id="@+id/myRoomFragment"
-        android:name="MyRoomFragment"
-        android:label="MyRoomFragment" />
     <fragment
         android:id="@+id/reviewFragment"
         android:name="com.example.realtodoapp.ui.ReviewFragment"

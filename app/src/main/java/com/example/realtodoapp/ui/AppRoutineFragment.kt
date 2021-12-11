@@ -9,14 +9,13 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import com.example.realtodoapp.adapter.AdapterAppRoutineForTimeList
-import com.example.realtodoapp.databinding.DialogAddAppRoutineBinding
-import com.example.realtodoapp.databinding.DialogAppListBinding
-import com.example.realtodoapp.databinding.DialogGraphBinding
-import com.example.realtodoapp.databinding.FragmentAppRoutineBinding
+import com.example.realtodoapp.databinding.*
 import com.example.realtodoapp.model.AppRoutineForTimeDto
 import com.example.realtodoapp.model.MemberInfoDto
+import com.example.realtodoapp.model.TodoPackageDto
 import com.example.realtodoapp.util.AppUtil
 import com.example.realtodoapp.util.LinearLayoutManagerWrapper
 import com.google.gson.Gson
@@ -27,6 +26,7 @@ class AppRoutineFragment: Fragment() {
     lateinit var dialogAppListBinding: DialogAppListBinding
     lateinit var dialogAddAppRoutineBinding: DialogAddAppRoutineBinding
     lateinit var dialogGraphBinding: DialogGraphBinding
+    lateinit var dialogAppUsePiechartBinding: DialogAppUsePiechartBinding
 
     inline fun <reified T> Gson.fromJson(json: String) = fromJson<T>(json, object: TypeToken<T>() {}.type)
     var gson: Gson = Gson()
@@ -50,6 +50,7 @@ class AppRoutineFragment: Fragment() {
         dialogAppListBinding = DialogAppListBinding.inflate(layoutInflater)
         dialogAddAppRoutineBinding = DialogAddAppRoutineBinding.inflate(layoutInflater)
         dialogGraphBinding = DialogGraphBinding.inflate(layoutInflater)
+        dialogAppUsePiechartBinding = DialogAppUsePiechartBinding.inflate(layoutInflater)
 
         val appRoutineRecyclerView = fragmentAppRoutineBinding.appRoutineRecyclerview
 
@@ -60,13 +61,44 @@ class AppRoutineFragment: Fragment() {
         var year = String.format("%02d",arguments?.get("year").toString().toInt())
         var month = String.format("%02d",arguments?.get("month").toString().toInt())
         var day = String.format("%02d",arguments?.get("day").toString().toInt())
+        var name = arguments?.get("name").toString()
 
 
         var appRoutineListJson =
             sharedPref.getString("appRoutineList"+year+month+day, emptyAppRoutineListJson).toString()
         appRoutineList = gson.fromJson(appRoutineListJson)
 
-        var appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding)
+        var appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
+
+        // 메인 화면에 todo로 추가
+        fragmentAppRoutineBinding.addTodoButton.setOnClickListener(){
+            var todoList = mutableListOf<TodoPackageDto>()
+            var emptyTodoListJson = gson.toJson(todoList)
+            var todoListJson = sharedPref.getString("myTodoList",emptyTodoListJson).toString()
+
+            todoList = gson.fromJson(todoListJson) // 기기에 있는 todoList 가져옴
+
+            var newTodo = TodoPackageDto()
+
+            // todo설정하여 기기에 저장
+            newTodo.year = Integer.parseInt(year)
+            newTodo.month = Integer.parseInt(month)
+            newTodo.day = Integer.parseInt(day)
+
+            newTodo.name = name
+            newTodo.time = "TODAY"
+            newTodo.certType = "AppRoutine"
+            todoList.add(newTodo)
+
+            todoListJson = gson.toJson(todoList)
+
+            sharedPrefEditor.putString("myTodoList", todoListJson)
+            sharedPrefEditor.commit()
+
+            // 메인 화면으로 이동
+            findNavController().popBackStack()
+            findNavController().popBackStack()
+        }
 
         fragmentAppRoutineBinding.addRoutineButton.setOnClickListener(){
             val dialog = Dialog(requireContext())
@@ -109,7 +141,7 @@ class AppRoutineFragment: Fragment() {
                     sharedPref.getString("appRoutineList"+year+month+day, emptyAppRoutineListJson).toString()
                 appRoutineList = gson.fromJson(appRoutineListJson)
 
-                appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding)
+                appRoutineForTimeAdpater = setAppRoutineForTimeListRecyclerview(appRoutineRecyclerView, appRoutineList, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
 
                 if(dialogAddAppRoutineBinding.root.parent != null){
                     (dialogAddAppRoutineBinding.root.parent as ViewGroup).removeView(
@@ -150,9 +182,9 @@ class AppRoutineFragment: Fragment() {
     }
 
     fun setAppRoutineForTimeListRecyclerview(recyclerView: RecyclerView, list:MutableList<AppRoutineForTimeDto>, dialogAppListBinding: DialogAppListBinding
-    , dialogGraphBinding: DialogGraphBinding): AdapterAppRoutineForTimeList {
+    , dialogGraphBinding: DialogGraphBinding, dialogAppUsePiechartBinding: DialogAppUsePiechartBinding): AdapterAppRoutineForTimeList {
 
-        recyclerView.adapter = AdapterAppRoutineForTimeList(requireContext(), list, dialogAppListBinding, dialogGraphBinding)
+        recyclerView.adapter = AdapterAppRoutineForTimeList(requireContext(), list, dialogAppListBinding, dialogGraphBinding, dialogAppUsePiechartBinding)
         val adapter = recyclerView.adapter as AdapterAppRoutineForTimeList
         val linearLayoutManager = LinearLayoutManagerWrapper(requireContext())
         recyclerView.layoutManager = linearLayoutManager

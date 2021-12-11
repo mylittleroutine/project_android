@@ -24,21 +24,21 @@
                 android:layout_weight="1"/>
 
             <TextView
-                android:id= "@+id/permit_textView"
+                android:id= "@+id/forbidden_textView"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:text="사용 허용 앱"
+                android:text="사용 금지 앱"
                 android:gravity="center"
                 android:layout_weight="3"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/permitted_app_constraintLayout"
+                android:id="@+id/forbidden_app_constraintLayout"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="5">
 
                 <ImageView
-                    android:id="@+id/permitted_app_one"
+                    android:id="@+id/forbidden_app_one"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -49,7 +49,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/permitted_app_two"
+                    android:id="@+id/forbidden_app_two"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -60,7 +60,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/permitted_app_three"
+                    android:id="@+id/forbidden_app_three"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -71,7 +71,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/permitted_app_four"
+                    android:id="@+id/forbidden_app_four"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -135,21 +135,21 @@
                 android:layout_weight="1"/>
 
             <TextView
-                android:id= "@+id/forbidden_textView"
+                android:id= "@+id/real_use_app_textView"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:text="사용 금지 앱"
+                android:text="실제 사용 앱"
                 android:gravity="center"
                 android:layout_weight="3"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/forbidden_app_constraintLayout"
+                android:id="@+id/real_use_app_constraintLayout"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="5">
 
                 <ImageView
-                    android:id="@+id/forbidden_app_one"
+                    android:id="@+id/real_use_app_one"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -160,7 +160,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/forbidden_app_two"
+                    android:id="@+id/real_use_app_two"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -171,7 +171,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/forbidden_app_three"
+                    android:id="@+id/real_use_app_three"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -182,7 +182,7 @@
                     android:background="@drawable/round_layout"/>
 
                 <ImageView
-                    android:id="@+id/forbidden_app_four"
+                    android:id="@+id/real_use_app_four"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     app:layout_constraintBottom_toBottomOf="parent"

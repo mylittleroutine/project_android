@@ -7,6 +7,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.*
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.hardware.Sensor
@@ -293,13 +294,25 @@ class CertService: Service(), SensorEventListener {
 
         var sharedPrefKey = "interActiveScreenRecord"+ startTimeString+endTimeString
 
+        var appUseTimeSharedPrefKey = "appUseTimeRecord"+ startTimeString+endTimeString
+
         // 이전 정보 가져옴
+
+        // 사용한 앱 시간 저장하는 리스트
+        var appUseTimeRecord = mutableListOf<Pair<String, Int>>() // 앱 패키지명, 실행 시간
+        var emptyAppUseTimeRecord = gson.toJson(appUseTimeRecord)
+
+        var appUseTimeRecordJson = sharedPref.getString(appUseTimeSharedPrefKey,emptyAppUseTimeRecord).toString()
+        appUseTimeRecord = gson.fromJson(appUseTimeRecordJson)
+
+        // 사용 금지 앱 비율 저장하는 리스트
         var interActiveScreenRecord = mutableListOf<Boolean>()
         var emptyInterActiveScreenRecord = gson.toJson(interActiveScreenRecord)
 
         var interActiveScreenRecordJson = sharedPref.getString(sharedPrefKey,emptyInterActiveScreenRecord).toString()
         interActiveScreenRecord = gson.fromJson(interActiveScreenRecordJson)
 
+        // 시간 계산하여 해당 시간일 때만 작동
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
 
         val startTime: LocalDateTime = LocalDateTime.parse(startTimeString, formatter)
@@ -317,6 +330,19 @@ class CertService: Service(), SensorEventListener {
                 var isfail = false
                 Log.d("notUseAppList", notUseAppList.toString())
                 Log.d("currentApp", currentApp.packageName)
+
+                // 현재 띄워진 앱이 실행된 시간 1초 추가
+                var inRecord = false
+                for( i in 0 until appUseTimeRecord.size){
+                    if(appUseTimeRecord[i].first == currentApp.packageName && !currentApp.packageName.contains("launcher")){ // 기본 화면 ui 앱 제외
+                        appUseTimeRecord[i] = Pair(currentApp.packageName, appUseTimeRecord[i].second +1)
+                        Log.d("앱 사용 시간:", appUseTimeRecord[i].second.toString())
+                        inRecord = true
+                    }
+                }
+                if(inRecord == false){
+                    appUseTimeRecord.add(Pair(currentApp.packageName, 1))
+                }
 
                 // 현재 띄워진 앱이 금지된 앱인지 판단
                 for (notUseApp in notUseAppList){
@@ -337,6 +363,11 @@ class CertService: Service(), SensorEventListener {
             }
 
             Log.d("레코드:", sharedPrefKey)
+
+            var appUseTimeRecordJson = gson.toJson(appUseTimeRecord)
+
+            sharedPrefEditor.putString(appUseTimeSharedPrefKey, appUseTimeRecordJson) // 시간별로 따로 저장
+            sharedPrefEditor.commit()
 
             var interActiveScreenRecordJson = gson.toJson(interActiveScreenRecord)
 
