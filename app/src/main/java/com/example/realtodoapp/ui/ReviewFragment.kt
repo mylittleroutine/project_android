@@ -127,6 +127,21 @@ class ReviewFragment: Fragment() {
         fragmentReviewBinding.thirdInterestTextView.setText("여행 : "+ (output.get(2)* 100).toInt().toString())
         fragmentReviewBinding.forthInterestTextView.setText("요리 : "+ (output.get(3)* 100).toInt().toString())
 
+        // 관심사에 따라 이미지 변경
+        fragmentReviewBinding.interestImageView.setImageResource(R.drawable.question)
+        if(output.get(0) * 100 > 50){
+            fragmentReviewBinding.interestImageView.setImageResource(R.drawable.exercise)
+        }
+        else if(output.get(1) * 100 > 50){
+            fragmentReviewBinding.interestImageView.setImageResource(R.drawable.read)
+        }
+        else if(output.get(2) * 100 > 50){
+            fragmentReviewBinding.interestImageView.setImageResource(R.drawable.travel)
+        }
+        else if(output.get(3) * 100 > 50){
+            fragmentReviewBinding.interestImageView.setImageResource(R.drawable.cook)
+        }
+
         // 세부 글자 색상 변경 과정
         fragmentReviewBinding.reviewEditText.text.clear()
 
