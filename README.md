@@ -5,7 +5,7 @@
 
 ![image](https://user-images.githubusercontent.com/75258748/248242376-fb294e50-bdf7-4c79-83ac-aceb4a2b2166.png)
 
-# 앱 기능
+# 앱 기능 및 개발 과정 소개
 
 ##
 
@@ -39,7 +39,7 @@
 
 ##
 
-![image](https://user-images.githubusercontent.com/75258748/248244628-f0f58372-9536-4c20-b795-606ab3e207cb.png)
+![image](https://user-images.githubusercontent.com/75258748/248245732-a08c0c00-ee1f-4361-8903-0449add853b2.png)
 
 ##
 
